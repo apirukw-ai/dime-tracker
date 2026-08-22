@@ -416,13 +416,16 @@
             });
         }
 
-// Google Gemini Vision AI OCR
+// Google Gemini Vision AI OCR (Auto Endpoint & Clean Key)
         async function handleSlipUploadGemini(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const apiKey = localStorage.getItem('gemini_api_key');
+            let apiKey = localStorage.getItem('gemini_api_key');
             if (!apiKey) { openApiKeyModal(); return; }
+            
+            // ล้างอักขระและช่องว่างส่วนเกินออกจาก Key
+            apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
 
             const loader = document.getElementById('aiLoader');
             loader.classList.remove('hidden');
@@ -444,30 +447,50 @@
                 If any value cannot be found, use null or 0.
                 `;
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // ระบบจะลองเรียก API ผ่านทั้ง v1 และ v1beta อัตโนมัติ
+                const apiEndpoints = [
+                    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+                ];
 
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
-                            ]
-                        }]
-                    })
-                });
+                let responseData = null;
+                let lastErrMsg = '';
 
-                const data = await response.json();
+                for (const url of apiEndpoints) {
+                    try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: promptText },
+                                        { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
+                                    ]
+                                }]
+                            })
+                        });
+                        const resJson = await res.json();
+                        if (res.ok && !resJson.error) {
+                            responseData = resJson;
+                            break;
+                        } else if (resJson.error) {
+                            lastErrMsg = resJson.error.message;
+                        }
+                    } catch (e) {
+                        lastErrMsg = e.message;
+                    }
+                }
+
                 loader.classList.add('hidden');
 
-                if (data.error) {
-                    alert("Gemini Error: " + data.error.message + "\n\n(โปรดสร้าง Key ใหม่โดยเลือก 'Create API key in new project')");
+                if (!responseData) {
+                    alert("Gemini Error: " + lastErrMsg + "\n\n💡 แนะนำ: กดปุ่ม 'API Key' สีเหลือง วาง Key ใหม่อีกครั้งเพื่อรีเซ็ตระบบ");
                     return;
                 }
 
-                let rawText = data.candidates[0].content.parts[0].text.trim();
+                let rawText = responseData.candidates[0].content.parts[0].text.trim();
                 rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const result = JSON.parse(rawText);
 
