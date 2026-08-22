@@ -12,11 +12,10 @@
     <meta name="apple-mobile-web-app-title" content="DIME Tracker">
     <link rel="apple-touch-icon" href="https://dime.co.th/favicon.ico">
     
-    <!-- Tailwind CSS, FontAwesome & Tesseract OCR Engine -->
+    <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
         :root {
@@ -86,7 +85,7 @@
                     <h1 class="text-xl font-extrabold text-white tracking-wide flex items-center gap-2">
                         DIME! Investment Tracker
                     </h1>
-                    <p class="text-xs text-slate-400 font-medium">พอร์ตการลงทุนจริง (9 Tickers / US Stocks)</p>
+                    <p class="text-xs text-slate-400 font-medium">พอร์ตการลงทุนจริง (AI Gemini Scanner)</p>
                 </div>
             </div>
 
@@ -97,14 +96,17 @@
                     <input type="text" id="syncIdInput" value="my-real-dime-port" onchange="changeSyncId()" class="bg-slate-900 border border-slate-700 text-dime font-mono font-bold px-2 py-0.5 rounded outline-none w-32">
                 </span>
                 <span class="text-emerald-400 flex items-center gap-1.5 font-bold border-l border-slate-700 pl-3">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Live Cloud Sync
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Live Cloud
                 </span>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex flex-wrap gap-2">
+                <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า Gemini API Key">
+                    <i class="fa-solid fa-key text-yellow-400"></i> API Key
+                </button>
                 <button onclick="triggerScanSlip()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm text-dime border-emerald-500/30">
-                    <i class="fa-solid fa-qrcode text-dime"></i> สแกนสลิป / ภาพพอร์ต
+                    <i class="fa-solid fa-wand-magic-sparkles text-dime"></i> สแกนภาพด้วย AI
                 </button>
                 <button onclick="exportData()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-download text-slate-400"></i> Export</button>
                 <button onclick="importData()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-upload text-slate-400"></i> Import</button>
@@ -178,13 +180,29 @@
     </div>
 
     <!-- Hidden Input for Scan Slip Upload -->
-    <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="handleSlipUpload(event)">
+    <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="handleSlipUploadGemini(event)">
 
-    <!-- OCR Loading Overlay -->
-    <div id="ocrLoader" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
-        <div class="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <h3 class="text-base font-bold text-white">กำลังสแกนอ่านรูปภาพด้วย AI OCR...</h3>
-        <p id="ocrProgress" class="text-xs text-slate-400 mt-1">กรุณารอสักครู่ ระบบกำลังอ่านข้อความบนสลิป/หน้าจอ</p>
+    <!-- Gemini Loader Overlay -->
+    <div id="aiLoader" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
+        <div class="w-14 h-14 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-brain text-dime"></i> Google Gemini AI กำลังวิเคราะห์รูปภาพ...</h3>
+        <p class="text-xs text-slate-400 mt-1.5">กำลังถอดรหัสข้อมูล Ticker, จำนวนหุ้น, ราคา และกำไร/ขาดทุน</p>
+    </div>
+
+    <!-- API Key Settings Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl">
+            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-key text-yellow-400"></i> ตั้งค่า Gemini API Key (ใช้งานฟรี)</h3>
+            <p class="text-xs text-slate-400 mb-4">รับ Key ฟรีจาก <a href="https://aistudio.google.com/" target="_blank" class="text-dime underline">aistudio.google.com</a> เพื่อใช้ AI สแกนอ่านสลิปและรูปภาพพอร์ตได้เป๊ะ 100%</p>
+            <div>
+                <label class="text-xs text-slate-300 font-semibold">Gemini API Key</label>
+                <input type="password" id="inputGeminiKey" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none text-xs font-mono">
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="closeApiKeyModal()" class="btn-slate px-4 py-2 rounded-xl text-xs">ยกเลิก</button>
+                <button onclick="saveApiKey()" class="btn-dime px-5 py-2 rounded-xl text-xs">บันทึก Key</button>
+            </div>
+        </div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -300,7 +318,7 @@
                     <td class="font-bold text-white">
                         <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-dime border border-emerald-500/30 font-extrabold">${f.code}</span>
                     </td>
-                    <td class="text-right text-slate-300">${f.units.toFixed(2)}</td>
+                    <td class="text-right text-slate-300">${f.units.toFixed(4)}</td>
                     <td class="text-right text-slate-400">$${f.avgNav.toFixed(2)}</td>
                     <td class="text-right text-dime font-bold">$${f.currentNav.toFixed(2)}</td>
                     <td class="text-right text-slate-300 font-medium">$${formatNum(fCost)}</td>
@@ -361,42 +379,117 @@
             });
         }
 
-        function triggerScanSlip() { document.getElementById('slipFileInput').click(); }
+        /* --- Gemini API Keys and Modal Management --- */
+        function openApiKeyModal() {
+            document.getElementById('inputGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+        }
+        function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+        function saveApiKey() {
+            const key = document.getElementById('inputGeminiKey').value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                alert("บันทึก Gemini API Key เรียบร้อยแล้ว!");
+            } else {
+                localStorage.removeItem('gemini_api_key');
+            }
+            closeApiKeyModal();
+        }
 
-        // OCR Slip Scanning Function
-        async function handleSlipUpload(event) {
+        function triggerScanSlip() {
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) {
+                alert("กรุณาใส่ Gemini API Key ก่อนใช้งานระบบสแกนด้วย AI");
+                openApiKeyModal();
+                return;
+            }
+            document.getElementById('slipFileInput').click();
+        }
+
+        // Helper to convert File to Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Google Gemini Vision AI OCR Function
+        async function handleSlipUploadGemini(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const loader = document.getElementById('ocrLoader');
-            const progressEl = document.getElementById('ocrProgress');
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) { openApiKeyModal(); return; }
+
+            const loader = document.getElementById('aiLoader');
             loader.classList.remove('hidden');
 
             try {
-                const worker = await Tesseract.createWorker('eng');
-                progressEl.innerText = "กำลังอ่านข้อความสัญลักษณ์หุ้นและตัวเลข...";
-                const ret = await worker.recognize(file);
-                const text = ret.data.text.toUpperCase();
-                await worker.terminate();
+                const base64Image = await fileToBase64(file);
+                
+                const promptText = `
+                Analyze this stock investment slip or portfolio screenshot from the DIME! app.
+                Extract the stock ticker, number of shares, average cost, current price, and today's gain/loss in USD.
+                Return ONLY a valid JSON object matching this schema (no markdown, no code block, just raw JSON text):
+                {
+                    "code": "STOCK_TICKER (e.g. NVDA, AAPL)",
+                    "units": number_of_shares (float),
+                    "avgNav": average_cost_price_usd (float),
+                    "currentNav": current_price_usd (float),
+                    "todayGain": todays_gain_loss_usd (float)
+                }
+                If any value cannot be found, use null or 0.
+                `;
 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
                 loader.classList.add('hidden');
 
-                // ค้นหา Ticker หุ้นในข้อความสแกน
-                const foundFund = funds.find(f => text.includes(f.code));
-                
-                if (foundFund) {
-                    openFundModal(foundFund.id);
-                    alert(`สแกนพบหุ้น: ${foundFund.code}!\nระบบได้ดึงข้อมูลมาเปิดหน้าแก้ไขให้คุณตรวจสอบและบันทึกเรียบร้อยครับ`);
-                } else {
-                    const matchedTickers = text.match(/[A-Z]{2,5}/g) || [];
-                    const possibleCode = matchedTickers.find(t => t.length >= 2 && !['USD', 'THB', 'BUY', 'SELL', 'GAIN'].includes(t)) || '';
-                    openFundModal();
-                    document.getElementById('inputCode').value = possibleCode;
-                    alert(`สแกนเสร็จสิ้น! ${possibleCode ? 'พบสัญลักษณ์หุ้นคัดกรอง: ' + possibleCode : 'ไม่พบสัญลักษณ์หุ้นเดิมในพอร์ต'} กรุณากรอกจำนวนหุ้นและราคาเพิ่มเติม`);
+                if (data.error) {
+                    alert("Gemini Error: " + data.error.message);
+                    return;
                 }
+
+                let rawText = data.candidates[0].content.parts[0].text.trim();
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const result = JSON.parse(rawText);
+
+                if (result.code) {
+                    const existingFund = funds.find(f => f.code.toUpperCase() === result.code.toUpperCase());
+                    openFundModal(existingFund ? existingFund.id : null);
+
+                    document.getElementById('inputCode').value = result.code.toUpperCase();
+                    if (result.units) document.getElementById('inputUnits').value = result.units;
+                    if (result.avgNav) document.getElementById('inputAvgNav').value = result.avgNav;
+                    if (result.currentNav) document.getElementById('inputCurrentNav').value = result.currentNav;
+                    if (result.todayGain) document.getElementById('inputTodayGain').value = result.todayGain;
+
+                    alert(`AI อ่านข้อมูลสำเร็จ!\nสัญลักษณ์: ${result.code}\nจำนวน: ${result.units || 'ไม่ระบุ'}\nโปรดตรวจสอบตัวเลขและกดบันทึกข้อมูล`);
+                } else {
+                    alert("AI ไม่สามารถค้นหาข้อมูลสัญลักษณ์หุ้นจากรูปภาพนี้ได้ โปรดลองใช้รูปภาพที่ชัดเจนขึ้น");
+                }
+
             } catch (err) {
                 loader.classList.add('hidden');
-                alert("เกิดข้อผิดพลาดในการอ่านรูปภาพ โปรดลองใหม่อีกครั้ง");
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับ Gemini AI โปรดตรวจสอบ API Key หรือรูปภาพอีกครั้ง");
             }
         }
 
@@ -496,14 +589,16 @@
         }
 
         loadData();
-    // เพิ่มบรรทัดนี้ไว้ล่างสุดของ <script> เพื่อดึงข้อมูลใหม่อัตโนมัติทุก 10 วินาที
-setInterval(loadData, 10000);
-// ลงทะเบียน Service Worker สำหรับ PWA
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log('PWA Service Worker Registered'))
-    .catch((err) => console.error('Service Worker Error', err));
-}
+
+        // Auto Refresh ทุกๆ 10 วินาที
+        setInterval(loadData, 10000);
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('PWA Service Worker Registered'))
+                .catch((err) => console.error('Service Worker Error', err));
+        }
     </script>
 </body>
 </html>
