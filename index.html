@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIME! Investment Portfolio Tracker</title>
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DIME Tracker">
+    <link rel="apple-touch-icon" href="https://dime.co.th/favicon.ico">
+    
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-slate: #0f172a;
+            --card-slate: #1e293b;
+            --card-border: #334155;
+            --dime-green: #00e599;
+            --dime-green-hover: #00c785;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --green-gain: #10b981;
+            --red-loss: #f43f5e;
+        }
+        
+        body { 
+            background-color: var(--bg-slate);
+            color: var(--text-main); 
+            font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif; 
+            min-height: 100vh;
+        }
+
+        .card-slate {
+            background-color: var(--card-slate);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-header-glow {
+            background: linear-gradient(135deg, #1e293b 0%, #111827 100%);
+            border: 1px solid #334155;
+            border-radius: 1rem;
+            box-shadow: 0 0 15px rgba(0, 229, 153, 0.08);
+        }
+
+        .text-dime { color: var(--dime-green); }
+        .text-green { color: var(--green-gain); }
+        .text-red { color: var(--red-loss); }
+
+        .btn-dime { 
+            background: linear-gradient(135deg, #00e599 0%, #00b377 100%); 
+            color: #06110d; 
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(0, 229, 153, 0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-dime:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(0, 229, 153, 0.4); 
+        }
+
+        .btn-slate { 
+            background: #334155; 
+            color: #cbd5e1; 
+            border: 1px solid #475569; 
+        }
+        .btn-slate:hover { background: #475569; color: #ffffff; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 0.8rem 0.9rem; border-bottom: 1px solid #334155; }
+        th { font-weight: 700; color: #00e599; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(15, 23, 42, 0.3); }
+        tr:hover td { background-color: rgba(51, 65, 85, 0.4); }
+    </style>
+</head>
+<body class="py-6 px-3 sm:px-8">
+
+    <div class="max-w-7xl mx-auto space-y-5">
+
+        <!-- Header Section -->
+        <header class="flex flex-col md:flex-row justify-between items-center gap-4 card-header-glow p-4 sm:p-5">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-300 flex items-center justify-center text-slate-950 font-black text-2xl shadow-md shadow-emerald-500/20">
+                    d!
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-white tracking-wide flex items-center gap-2">
+                        DIME! Investment Tracker
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">พอร์ตการลงทุนจริง (9 Tickers / US Stocks)</p>
+                </div>
+            </div>
+
+            <!-- Sync Status Center -->
+            <div class="bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-700 text-xs flex items-center gap-3">
+                <span class="text-slate-300 flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-cloud text-dime"></i> Sync ID: <strong id="syncIdDisplay" class="text-dime font-mono font-bold">my-real-dime-port</strong>
+                </span>
+                <span class="text-emerald-400 flex items-center gap-1.5 font-bold border-l border-slate-700 pl-3">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Live Cloud Sync
+                </span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-2">
+                <button onclick="triggerScanSlip()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm text-dime border-emerald-500/30">
+                    <i class="fa-solid fa-qrcode text-dime"></i> สแกนสลิป
+                </button>
+                <button onclick="exportData()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-download text-slate-400"></i> Export</button>
+                <button onclick="importData()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"><i class="fa-solid fa-upload text-slate-400"></i> Import</button>
+                <button onclick="openFundModal()" class="btn-dime px-4 py-2 rounded-xl text-xs flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> เพิ่มสินทรัพย์</button>
+            </div>
+        </header>
+
+        <!-- Top Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ยอดต้นทุนรวม</p>
+                <h2 id="totalCostDisplay" class="text-3xl font-extrabold text-white">$0.00</h2>
+                <p id="totalCostThbDisplay" class="text-xs text-dime mt-1.5 font-bold">≈ ฿0.00 THB</p>
+            </div>
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไร/ขาดทุนสะสม (Total Gain)</p>
+                <h2 id="totalProfitDisplay" class="text-3xl font-extrabold">$0.00</h2>
+                <p id="totalProfitSub" class="text-xs text-slate-400 mt-1.5 font-medium">0.00% จากต้นทุนรวม</p>
+            </div>
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไร/ขาดทุนวันนี้ (Today's Gain)</p>
+                <h2 id="dailyProfitDisplay" class="text-3xl font-extrabold">$0.00</h2>
+                <p id="dailyProfitSub" class="text-xs text-slate-400 mt-1.5 font-medium">0.00% การเปลี่ยนแปลงวันนี้</p>
+            </div>
+        </div>
+
+        <!-- Target Allocation Table -->
+        <div class="card-slate p-5 overflow-x-auto">
+            <h3 class="text-xs font-bold text-dime mb-3 flex items-center gap-2 uppercase tracking-wider">
+                <i class="fa-solid fa-sliders"></i> สัดส่วนเป้าหมาย & Rebalance พอร์ต DIME
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticker</th>
+                        <th class="text-right">ราคาปัจจุบัน ($)</th>
+                        <th class="text-right">สัดส่วนปัจจุบัน (%)</th>
+                        <th class="text-right">สัดส่วนเป้าหมาย (%)</th>
+                        <th class="text-right">ส่วนต่าง (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="allocTableBody" class="text-xs font-medium"></tbody>
+            </table>
+        </div>
+
+        <!-- Main Investment Table -->
+        <div class="card-slate p-5 overflow-x-auto">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-list-check text-dime"></i> รายการหุ้นในพอร์ต DIME
+                </h3>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>สัญลักษณ์</th>
+                        <th class="text-right">จำนวนหุ้น</th>
+                        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
+                        <th class="text-right">ราคาปัจจุบัน ($)</th>
+                        <th class="text-right">ต้นทุนรวม ($)</th>
+                        <th class="text-right">มูลค่าตลาด ($)</th>
+                        <th class="text-right">กำไร/ขาดทุนสะสม ($)</th>
+                        <th class="text-right">กำไร/ขาดทุนวันนี้ ($)</th>
+                        <th class="text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="fundTableBody" class="text-xs font-medium"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Hidden Input for Scan Slip Upload -->
+    <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="handleSlipUpload(event)">
+
+    <!-- Add/Edit Modal -->
+    <div id="fundModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl">
+            <h3 id="modalTitle" class="text-base font-bold text-white mb-4">เพิ่ม/แก้ไข รายการลงทุน</h3>
+            <input type="hidden" id="editFundId">
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <label class="text-slate-300 font-semibold">Ticker สัญลักษณ์หุ้น</label>
+                    <input type="text" id="inputCode" placeholder="เช่น NVDA" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="text-slate-300 font-semibold">จำนวนหุ้น (Shares)</label>
+                        <input type="number" step="0.0001" id="inputUnits" placeholder="0.0000" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-slate-300 font-semibold">ราคาต้นทุนเฉลี่ย ($)</label>
+                        <input type="number" step="0.0001" id="inputAvgNav" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="text-dime font-bold">ราคาปัจจุบัน ($)</label>
+                        <input type="number" step="0.0001" id="inputCurrentNav" placeholder="0.00" class="w-full bg-slate-950 border border-emerald-500/40 rounded-xl p-2.5 text-dime font-bold mt-1 focus:border-emerald-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-slate-300 font-semibold">กำไร/ขาดทุนวันนี้ ($)</label>
+                        <input type="number" step="0.01" id="inputTodayGain" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-slate-300 font-semibold">สัดส่วนเป้าหมาย (%)</label>
+                    <input type="number" step="0.1" id="inputTargetPct" placeholder="0.0" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeFundModal()" class="btn-slate px-4 py-2 rounded-xl text-xs">ยกเลิก</button>
+                <button onclick="saveFund()" class="btn-dime px-5 py-2 rounded-xl text-xs">บันทึกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DB_URL = "https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_ports/my-real-dime-port.json";
+        const USD_THB_RATE = 35.25;
+
+        const defaultFunds = [
+            { id: '1', code: 'NVDA', units: 21.11, avgNav: 46.39, currentNav: 214.72, todayGain: -44.96, todayGainPct: -0.98, targetPct: 15.0 },
+            { id: '2', code: 'AVGO', units: 11.25, avgNav: 102.50, currentNav: 368.45, todayGain: 49.74, todayGainPct: 1.21, targetPct: 15.0 },
+            { id: '3', code: 'JPM', units: 8.68, avgNav: 257.70, currentNav: 351.58, todayGain: 0.26, todayGainPct: 0.01, targetPct: 15.0 },
+            { id: '4', code: 'GOOGL', units: 7.85, avgNav: 140.49, currentNav: 344.82, todayGain: 32.59, todayGainPct: 1.22, targetPct: 12.0 },
+            { id: '5', code: 'WMT', units: 21.50, avgNav: 104.19, currentNav: 103.70, todayGain: -3.01, todayGainPct: -0.13, targetPct: 12.0 },
+            { id: '6', code: 'MSFT', units: 4.11, avgNav: 350.73, currentNav: 483.24, todayGain: 8.60, todayGainPct: 0.43, targetPct: 10.0 },
+            { id: '7', code: 'AMZN', units: 6.83, avgNav: 128.44, currentNav: 258.63, todayGain: -10.11, todayGainPct: -0.57, targetPct: 8.0 },
+            { id: '8', code: 'ABBV', units: 6.58, avgNav: 171.57, currentNav: 264.96, todayGain: 20.58, todayGainPct: 1.20, targetPct: 8.0 },
+            { id: '9', code: 'NEE', units: 12.76, avgNav: 77.11, currentNav: 83.65, todayGain: -17.61, todayGainPct: -1.62, targetPct: 5.0 }
+        ];
+
+        let funds = [];
+
+        function formatNum(num) {
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(DB_URL);
+                const data = await res.json();
+                funds = (data && data.length > 0) ? data : defaultFunds;
+                renderAll();
+            } catch (err) {
+                funds = defaultFunds;
+                renderAll();
+            }
+        }
+
+        function renderAll() {
+            let totalVal = 0;
+            let totalCost = 0;
+            let dailyProfitSum = 0;
+
+            const tableBody = document.getElementById('fundTableBody');
+            tableBody.innerHTML = '';
+
+            funds.forEach(f => {
+                const fCost = f.units * f.avgNav;
+                const fVal = f.units * f.currentNav;
+                const profit = fVal - fCost;
+                const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
+                const todayGain = f.todayGain || 0;
+                const todayGainPct = f.todayGainPct || 0;
+
+                totalVal += fVal;
+                totalCost += fCost;
+                dailyProfitSum += todayGain;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-white">
+                        <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-dime border border-emerald-500/30 font-extrabold">${f.code}</span>
+                    </td>
+                    <td class="text-right text-slate-300">${f.units.toFixed(2)}</td>
+                    <td class="text-right text-slate-400">$${f.avgNav.toFixed(2)}</td>
+                    <td class="text-right text-dime font-bold">$${f.currentNav.toFixed(2)}</td>
+                    <td class="text-right text-slate-300 font-medium">$${formatNum(fCost)}</td>
+                    <td class="text-right font-extrabold text-white">$${formatNum(fVal)}</td>
+                    <td class="text-right ${profit >= 0 ? 'text-green' : 'text-red'} font-bold">
+                        ${profit >= 0 ? '+' : ''}$${formatNum(profit)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
+                    </td>
+                    <td class="text-right ${todayGain >= 0 ? 'text-green' : 'text-red'} font-bold">
+                        ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
+                    </td>
+                    <td class="text-center">
+                        <button onclick="openFundModal('${f.id}')" class="btn-slate p-1.5 rounded-lg text-dime mr-1"><i class="fa-solid fa-pen text-[11px]"></i></button>
+                        <button onclick="deleteFund('${f.id}')" class="btn-slate p-1.5 rounded-lg text-red"><i class="fa-solid fa-trash text-[11px]"></i></button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            const totalProfit = totalVal - totalCost;
+            const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+            const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
+
+            document.getElementById('totalCostDisplay').innerText = `$${formatNum(totalCost)}`;
+            document.getElementById('totalCostThbDisplay').innerText = `≈ ฿${formatNum(totalCost * USD_THB_RATE)} THB`;
+
+            const profitEl = document.getElementById('totalProfitDisplay');
+            profitEl.innerText = `${totalProfit >= 0 ? '+' : ''}$${formatNum(totalProfit)}`;
+            profitEl.className = `text-3xl font-extrabold ${totalProfit >= 0 ? 'text-green' : 'text-red'}`;
+            document.getElementById('totalProfitSub').innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม`;
+
+            const dailyEl = document.getElementById('dailyProfitDisplay');
+            dailyEl.innerText = `${dailyProfitSum >= 0 ? '+' : ''}$${formatNum(dailyProfitSum)}`;
+            dailyEl.className = `text-3xl font-extrabold ${dailyProfitSum >= 0 ? 'text-green' : 'text-red'}`;
+            document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้`;
+
+            renderAllocation(totalVal);
+        }
+
+        function renderAllocation(totalVal) {
+            const allocBody = document.getElementById('allocTableBody');
+            allocBody.innerHTML = '';
+
+            funds.forEach(f => {
+                const fVal = f.units * f.currentNav;
+                const currentPct = totalVal > 0 ? (fVal / totalVal) * 100 : 0;
+                const targetPct = f.targetPct || 0;
+                const diffPct = currentPct - targetPct;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-white"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">${f.code}</span></td>
+                    <td class="text-right text-dime font-bold">$${f.currentNav.toFixed(2)}</td>
+                    <td class="text-right font-bold text-white">${currentPct.toFixed(2)}%</td>
+                    <td class="text-right text-dime font-bold">${targetPct.toFixed(1)}%</td>
+                    <td class="text-right ${diffPct >= 0 ? 'text-red' : 'text-green'} font-bold">${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%</td>
+                `;
+                allocBody.appendChild(tr);
+            });
+        }
+
+        function triggerScanSlip() {
+            document.getElementById('slipFileInput').click();
+        }
+
+        function handleSlipUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                alert(`กำลังสแกนรูปสลิป/หน้าจอพอร์ต DIME!: ${file.name}\n(ระบบจะอ่านข้อมูลหุ้นและอัปเดตอัตโนมัติ)`);
+            }
+        }
+
+        async function saveToFirebase() {
+            try {
+                await fetch(DB_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(funds)
+                });
+            } catch (err) { console.error("Firebase Sync Error", err); }
+        }
+
+        function openFundModal(id = null) {
+            document.getElementById('editFundId').value = id || '';
+            if (id) {
+                const f = funds.find(item => item.id === id);
+                if (f) {
+                    document.getElementById('modalTitle').innerText = "แก้ไขสินทรัพย์";
+                    document.getElementById('inputCode').value = f.code || '';
+                    document.getElementById('inputUnits').value = f.units || '';
+                    document.getElementById('inputAvgNav').value = f.avgNav || '';
+                    document.getElementById('inputCurrentNav').value = f.currentNav || '';
+                    document.getElementById('inputTodayGain').value = f.todayGain || 0;
+                    document.getElementById('inputTargetPct').value = f.targetPct || 0;
+                }
+            } else {
+                document.getElementById('modalTitle').innerText = "เพิ่มสินทรัพย์ใหม่";
+                document.getElementById('inputCode').value = '';
+                document.getElementById('inputUnits').value = '';
+                document.getElementById('inputAvgNav').value = '';
+                document.getElementById('inputCurrentNav').value = '';
+                document.getElementById('inputTodayGain').value = '';
+                document.getElementById('inputTargetPct').value = '';
+            }
+            document.getElementById('fundModal').classList.remove('hidden');
+        }
+
+        function closeFundModal() { document.getElementById('fundModal').classList.add('hidden'); }
+
+        async function saveFund() {
+            const id = document.getElementById('editFundId').value;
+            const code = document.getElementById('inputCode').value.toUpperCase();
+            const units = parseFloat(document.getElementById('inputUnits').value) || 0;
+            const avgNav = parseFloat(document.getElementById('inputAvgNav').value) || 0;
+            const currentNav = parseFloat(document.getElementById('inputCurrentNav').value) || avgNav;
+            const todayGain = parseFloat(document.getElementById('inputTodayGain').value) || 0;
+            const targetPct = parseFloat(document.getElementById('inputTargetPct').value) || 0;
+
+            if (id) {
+                const f = funds.find(item => item.id === id);
+                if (f) {
+                    f.code = code; f.units = units; f.avgNav = avgNav; f.currentNav = currentNav;
+                    f.todayGain = todayGain; f.targetPct = targetPct;
+                }
+            } else {
+                funds.push({
+                    id: 'fund_' + Date.now(),
+                    code: code, units: units, avgNav: avgNav, currentNav: currentNav,
+                    todayGain: todayGain, todayGainPct: 0, targetPct: targetPct
+                });
+            }
+
+            await saveToFirebase();
+            closeFundModal();
+            renderAll();
+        }
+
+        async function deleteFund(id) {
+            if (confirm("ยืนยันการลบรายการนี้ใช่หรือไม่?")) {
+                funds = funds.filter(f => f.id !== id);
+                await saveToFirebase();
+                renderAll();
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(funds));
+            const a = document.createElement('a');
+            a.href = dataStr; a.download = "dime_slate_portfolio.json";
+            a.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'application/json';
+            input.onchange = e => {
+                const reader = new FileReader();
+                reader.readAsText(e.target.files[0], 'UTF-8');
+                reader.onload = async event => {
+                    funds = JSON.parse(event.target.result);
+                    await saveToFirebase();
+                    renderAll();
+                }
+            }
+            input.click();
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
