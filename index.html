@@ -498,6 +498,12 @@
         loadData();
     // เพิ่มบรรทัดนี้ไว้ล่างสุดของ <script> เพื่อดึงข้อมูลใหม่อัตโนมัติทุก 10 วินาที
 setInterval(loadData, 10000);
+// ลงทะเบียน Service Worker สำหรับ PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log('PWA Service Worker Registered'))
+    .catch((err) => console.error('Service Worker Error', err));
+}
     </script>
 </body>
 </html>
