@@ -416,7 +416,7 @@
             });
         }
 
-// Google Gemini Vision AI OCR Function (Auto-Fallback Models)
+// Google Gemini Vision AI OCR
         async function handleSlipUploadGemini(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -444,42 +444,26 @@
                 If any value cannot be found, use null or 0.
                 `;
 
-                // รายชื่อโมเดล AI สำรอง (ระบบจะลองเรียกใช้ตามลำดับ)
-                const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-                let data = null;
-                let lastError = '';
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-                for (const model of models) {
-                    try {
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const res = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: promptText },
-                                        { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
-                                    ]
-                                }]
-                            })
-                        });
-                        const resData = await res.json();
-                        if (!resData.error) {
-                            data = resData;
-                            break; // สำเร็จแล้ว ออกจากลูปทันที
-                        } else {
-                            lastError = resData.error.message;
-                        }
-                    } catch (e) {
-                        lastError = e.message;
-                    }
-                }
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
+                            ]
+                        }]
+                    })
+                });
 
+                const data = await response.json();
                 loader.classList.add('hidden');
 
-                if (!data) {
-                    alert("Gemini Error: " + lastError);
+                if (data.error) {
+                    alert("Gemini Error: " + data.error.message + "\n\n(โปรดสร้าง Key ใหม่โดยเลือก 'Create API key in new project')");
                     return;
                 }
 
