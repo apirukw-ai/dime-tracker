@@ -416,7 +416,7 @@
             });
         }
 
-// Google Gemini Vision AI OCR (Updated to Gemini 3.6 Flash)
+// Google Gemini Vision AI OCR (Multi-Stock Multi-Scan)
         async function handleSlipUploadGemini(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -433,20 +433,27 @@
                 const base64Image = await fileToBase64(file);
                 
                 const promptText = `
-                Analyze this stock investment slip or portfolio screenshot from the DIME! app.
-                Extract the stock ticker, number of shares, average cost, current price, and today's gain/loss in USD.
-                Return ONLY a valid JSON object matching this schema (no markdown, no code block, just raw JSON text):
-                {
-                    "code": "STOCK_TICKER (e.g. NVDA, AAPL)",
-                    "units": number_of_shares (float),
-                    "avgNav": average_cost_price_usd (float),
-                    "currentNav": current_price_usd (float),
-                    "todayGain": todays_gain_loss_usd (float)
-                }
-                If any value cannot be found, use null or 0.
+                Analyze this stock investment portfolio screenshot or slip from the DIME! app.
+                Extract ALL visible stock tickers and their numbers:
+                - stock ticker (code)
+                - number of shares (units)
+                - average cost price in USD (avgNav)
+                - current price in USD (currentNav)
+                - today's gain/loss in USD (todayGain)
+
+                Return ONLY a valid JSON ARRAY of objects matching this schema (no markdown, no code block, just raw JSON text):
+                [
+                  {
+                    "code": "STOCK_TICKER (e.g. NVDA, AAPL, NEE)",
+                    "units": number_of_shares (float or null),
+                    "avgNav": average_cost_price_usd (float or null),
+                    "currentNav": current_price_usd (float or null),
+                    "todayGain": todays_gain_loss_usd (float or null)
+                  }
+                ]
+                If any value is missing, use null or 0.
                 `;
 
-                // เรียกใช้โมเดลล่าสุด gemini-3.6-flash
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
                 const response = await fetch(apiUrl, {
@@ -472,21 +479,53 @@
 
                 let rawText = data.candidates[0].content.parts[0].text.trim();
                 rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-                const result = JSON.parse(rawText);
+                
+                const parsedData = JSON.parse(rawText);
+                const items = Array.isArray(parsedData) ? parsedData : [parsedData];
 
-                if (result.code) {
-                    const existingFund = funds.find(f => f.code.toUpperCase() === result.code.toUpperCase());
-                    openFundModal(existingFund ? existingFund.id : null);
+                if (items.length === 0) {
+                    alert("AI ไม่พบข้อมูลหุ้นในรูปภาพนี้");
+                    return;
+                }
 
-                    document.getElementById('inputCode').value = result.code.toUpperCase();
-                    if (result.units) document.getElementById('inputUnits').value = result.units;
-                    if (result.avgNav) document.getElementById('inputAvgNav').value = result.avgNav;
-                    if (result.currentNav) document.getElementById('inputCurrentNav').value = result.currentNav;
-                    if (result.todayGain) document.getElementById('inputTodayGain').value = result.todayGain;
+                let updatedList = [];
 
-                    alert(`AI อ่านข้อมูลสำเร็จ!\nสัญลักษณ์: ${result.code}\nจำนวน: ${result.units || 'ไม่ระบุ'}\nโปรดตรวจสอบตัวเลขและกดบันทึกข้อมูล`);
+                items.forEach(item => {
+                    if (!item.code) return;
+                    const codeUpper = item.code.toUpperCase();
+                    const existingIndex = funds.findIndex(f => f.code.toUpperCase() === codeUpper);
+
+                    const newUnits = item.units ? parseFloat(item.units) : 0;
+                    const newAvgNav = item.avgNav ? parseFloat(item.avgNav) : 0;
+                    const newCurrentNav = item.currentNav ? parseFloat(item.currentNav) : newAvgNav;
+                    const newTodayGain = item.todayGain ? parseFloat(item.todayGain) : 0;
+
+                    if (existingIndex !== -1) {
+                        if (newUnits) funds[existingIndex].units = newUnits;
+                        if (newAvgNav) funds[existingIndex].avgNav = newAvgNav;
+                        if (newCurrentNav) funds[existingIndex].currentNav = newCurrentNav;
+                        funds[existingIndex].todayGain = newTodayGain;
+                    } else {
+                        funds.push({
+                            id: 'fund_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            code: codeUpper,
+                            units: newUnits,
+                            avgNav: newAvgNav,
+                            currentNav: newCurrentNav,
+                            todayGain: newTodayGain,
+                            todayGainPct: 0,
+                            targetPct: 0
+                        });
+                    }
+                    updatedList.push(codeUpper);
+                });
+
+                if (updatedList.length > 0) {
+                    renderAll();
+                    saveToFirebase();
+                    alert(`AI สแกนและอัปเดตหุ้นสำเร็จ ${updatedList.length} รายการ:\n${updatedList.join(', ')}`);
                 } else {
-                    alert("AI ไม่สามารถค้นหาข้อมูลสัญลักษณ์หุ้นจากรูปภาพนี้ได้ โปรดลองใช้รูปภาพที่ชัดเจนขึ้น");
+                    alert("ไม่สามารถดึงข้อมูลหุ้นจากภาพได้ โปรดลองภาพที่ชัดเจนขึ้น");
                 }
 
             } catch (err) {
@@ -495,7 +534,6 @@
                 alert("เกิดข้อผิดพลาดในการประมวลผลรูปภาพ โปรดลองใหม่อีกครั้ง");
             }
         }
-
         function openFundModal(id = null) {
             document.getElementById('editFundId').value = id || '';
             if (id) {
