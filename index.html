@@ -523,32 +523,62 @@
 
         function closeFundModal() { document.getElementById('fundModal').classList.add('hidden'); }
 
-        async function saveFund() {
-            const id = document.getElementById('editFundId').value;
-            const code = document.getElementById('inputCode').value.toUpperCase();
-            const units = parseFloat(document.getElementById('inputUnits').value) || 0;
-            const avgNav = parseFloat(document.getElementById('inputAvgNav').value) || 0;
-            const currentNav = parseFloat(document.getElementById('inputCurrentNav').value) || avgNav;
-            const todayGain = parseFloat(document.getElementById('inputTodayGain').value) || 0;
-            const targetPct = parseFloat(document.getElementById('inputTargetPct').value) || 0;
-
-            if (id) {
-                const f = funds.find(item => item.id === id);
-                if (f) {
-                    f.code = code; f.units = units; f.avgNav = avgNav; f.currentNav = currentNav;
-                    f.todayGain = todayGain; f.targetPct = targetPct;
-                }
-            } else {
-                funds.push({
-                    id: 'fund_' + Date.now(),
-                    code: code, units: units, avgNav: avgNav, currentNav: currentNav,
-                    todayGain: todayGain, todayGainPct: 0, targetPct: targetPct
+async function saveToFirebase() {
+            try {
+                await fetch(getDbUrl(), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(funds)
                 });
+            } catch (err) { 
+                console.error("Firebase Sync Error", err); 
             }
+        }
 
-            await saveToFirebase();
-            closeFundModal();
-            renderAll();
+        function saveFund() {
+            try {
+                const id = document.getElementById('editFundId').value;
+                const code = document.getElementById('inputCode').value.toUpperCase();
+                const units = parseFloat(document.getElementById('inputUnits').value) || 0;
+                const avgNav = parseFloat(document.getElementById('inputAvgNav').value) || 0;
+                const currentNav = parseFloat(document.getElementById('inputCurrentNav').value) || avgNav;
+                const todayGain = parseFloat(document.getElementById('inputTodayGain').value) || 0;
+                const targetPct = parseFloat(document.getElementById('inputTargetPct').value) || 0;
+
+                if (!code) {
+                    alert("กรุณากรอก Ticker สัญลักษณ์หุ้น");
+                    return;
+                }
+
+                if (id) {
+                    const f = funds.find(item => item.id === id);
+                    if (f) {
+                        f.code = code; 
+                        f.units = units; 
+                        f.avgNav = avgNav; 
+                        f.currentNav = currentNav;
+                        f.todayGain = todayGain; 
+                        f.targetPct = targetPct;
+                    }
+                } else {
+                    funds.push({
+                        id: 'fund_' + Date.now(),
+                        code: code, units: units, avgNav: avgNav, currentNav: currentNav,
+                        todayGain: todayGain, todayGainPct: 0, targetPct: targetPct
+                    });
+                }
+
+                // ปิด Modal และแสดงผลบนหน้าจอทันที
+                closeFundModal();
+                renderAll();
+
+                // บันทึกลง Cloud ใน background
+                saveToFirebase();
+
+            } catch (err) {
+                console.error("Save Error:", err);
+                alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
+            }
         }
 
         async function deleteFund(id) {
