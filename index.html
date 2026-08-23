@@ -281,40 +281,37 @@
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-async function loadData() {
+// Style สำหรับ Real-time Flash Effect
+        if (!document.getElementById('live-flash-style')) {
+            const style = document.createElement('style');
+            style.id = 'live-flash-style';
+            style.innerHTML = `
+                @keyframes priceGlow {
+                    0% { background-color: rgba(52, 211, 153, 0.4); text-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+                    100% { background-color: transparent; }
+                }
+                .flash-updated {
+                    animation: priceGlow 1.2s ease-out;
+                    border-radius: 4px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        async function loadData() {
             try {
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
-                funds = (data && data.length > 0) ? data : defaultFunds;
+                funds = (data && data.length > 0) ? data : (typeof defaultFunds !== 'undefined' ? defaultFunds : []);
             } catch (err) {
                 funds = (typeof defaultFunds !== 'undefined') ? defaultFunds : [];
             }
             renderAll();
-            
-            // ดึงราคา Real-time ทันทีที่โหลดหน้าเว็บเสร็จ
             fetchLivePrices();
         }
 
-// ฟังก์ชันดึงราคาหุ้น Real-time พร้อมเอฟเฟกต์กระพริบแจ้งเตือน
         async function fetchLivePrices() {
             if (!funds || funds.length === 0) return;
-
-            // เพิ่ม Style สำหรับ Effect กระพริบ (ถ้ายังไม่มีในระบบ)
-            if (!document.getElementById('live-flash-style')) {
-                const style = document.createElement('style');
-                style.id = 'live-flash-style';
-                style.innerHTML = `
-                    @keyframes priceGlow {
-                        0% { background-color: rgba(52, 211, 153, 0.4); text-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
-                        100% { background-color: transparent; }
-                    }
-                    .flash-updated {
-                        animation: priceGlow 1.2s ease-out;
-                        border-radius: 4px;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
 
             const tickers = funds.map(f => f.code).filter(Boolean).join(',');
             if (!tickers) return;
@@ -327,7 +324,7 @@ async function loadData() {
                 const data = await res.json();
                 
                 const results = data?.quoteResponse?.result || [];
-                if (results.length > 0) {
+                if (results && results.length > 0) {
                     results.forEach(quote => {
                         const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
                         if (fund) {
@@ -336,17 +333,71 @@ async function loadData() {
                                 const units = parseFloat(fund.units) || 0;
                                 fund.todayGain = quote.regularMarketChange * units;
                             }
-                            // ทำเครื่องหมายว่าหุ้นตัวนี้เพิ่งถูกอัปเดตราคา
                             fund.justUpdated = true;
                         }
                     });
-                    
-                    // แสดงผลใหม่พร้อมเปิดใช้งาน Effect กระพริบ
                     renderAll(true);
                 }
             } catch (err) {
                 console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
             }
+        }
+
+        // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที
+        if (!window.livePriceInterval) {
+            window.livePriceInterval = setInterval(fetchLivePrices, 60000);
+        }
+
+        function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
+            const rate = window.USD_THB_RATE || 35.25;
+            const totalValThb = totalVal * rate;
+
+            const setElText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setElText('totalCostDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('totalValueDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('totalGainDisplay', `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('todayGainDisplay', `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+
+            document.querySelectorAll('div').forEach(card => {
+                if (card.children.length >= 1 && card.children.length <= 6) {
+                    const text = card.innerText || '';
+                    
+                    if (text.includes('ยอดลงทุนรวม') || text.includes('ยอดต้นทุนรวม')) {
+                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
+                            if (node.children.length === 0) {
+                                if (node.innerText.includes('$')) node.innerText = `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                else if (node.innerText.includes('THB') || node.innerText.includes('฿')) node.innerText = `≈ ฿${totalValThb.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
+                            }
+                        });
+                    }
+                    
+                    if (text.includes('TOTAL GAIN')) {
+                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
+                            if (node.children.length === 0) {
+                                if (node.innerText.includes('$')) {
+                                    node.innerText = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                    node.className = node.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (totalProfit >= 0 ? ' text-emerald-400' : ' text-rose-400');
+                                } else if (node.innerText.includes('จากต้นทุน')) {
+                                    node.innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม`;
+                                }
+                            }
+                        });
+                    }
+
+                    if (text.includes("TODAY'S GAIN")) {
+                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
+                            if (node.children.length === 0) {
+                                if (node.innerText.includes('$')) {
+                                    node.innerText = `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                    node.className = node.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (dailyProfitSum >= 0 ? ' text-emerald-400' : ' text-rose-400');
+                                } else if (node.innerText.includes('การเปลี่ยนแปลง')) {
+                                    node.innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% จากการเปลี่ยนแปลงวันนี้`;
+                                }
+                            }
+                        });
+                    }
+                }
+            });
         }
 
         function renderAll(isLiveUpdate = false) {
@@ -382,6 +433,23 @@ async function loadData() {
                     fundTable.appendChild(tableBody);
                 }
 
+                const thead = fundTable.querySelector('thead');
+                if (thead) {
+                    thead.innerHTML = `
+                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="py-3 px-4 text-left">สัญลักษณ์</th>
+                            <th class="py-3 px-4 text-right">จำนวนหุ้น</th>
+                            <th class="py-3 px-4 text-right">ต้นทุนเฉลี่ย ($)</th>
+                            <th class="py-3 px-4 text-right">ราคาปัจจุบัน ($)</th>
+                            <th class="py-3 px-4 text-right">ต้นทุนรวม ($)</th>
+                            <th class="py-3 px-4 text-right">มูลค่าตลาด ($)</th>
+                            <th class="py-3 px-4 text-right">กำไร/ขาดทุนสะสม ($)</th>
+                            <th class="py-3 px-4 text-right">กำไร/ขาดทุนวันนี้ ($)</th>
+                            <th class="py-3 px-4 text-center">จัดการ</th>
+                        </tr>
+                    `;
+                }
+
                 tableBody.innerHTML = '';
                 fundList.forEach(f => {
                     const units = parseFloat(f.units) || 0;
@@ -395,7 +463,6 @@ async function loadData() {
                     const prevVal = fVal - todayGain;
                     const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
 
-                    // เช็กว่าจะใส่ คลาสกระพริบ หรือไม่
                     const flashClass = (isLiveUpdate && f.justUpdated) ? 'flash-updated' : '';
 
                     const tr = document.createElement('tr');
@@ -420,9 +487,32 @@ async function loadData() {
                     `;
                     tableBody.appendChild(tr);
                     
-                    // เคลียร์สถานะการอัปเดตหลังจากวาดตารางแล้ว
                     f.justUpdated = false;
                 });
+
+                let tfoot = fundTable.querySelector('tfoot');
+                if (!tfoot) {
+                    tfoot = document.createElement('tfoot');
+                    fundTable.appendChild(tfoot);
+                }
+                tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-sm font-mono";
+                tfoot.innerHTML = `
+                    <tr>
+                        <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-200">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="py-3.5 px-4 text-right text-white font-bold">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)
+                        </td>
+                        <td class="py-3.5 px-4 text-right ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-sans"></td>
+                    </tr>
+                `;
             }
 
             renderAllocation(totalVal);
@@ -477,7 +567,6 @@ async function loadData() {
                 allocBody.appendChild(tr);
             });
         }
-
         // Helper to convert File to Base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
