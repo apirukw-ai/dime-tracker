@@ -645,124 +645,85 @@
             });
         }
 
-// Google Gemini Vision AI OCR (Multi-Stock Multi-Scan)
-        async function handleSlipUploadGemini(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+// 1. ฟังก์ชันเมื่อกดปุ่มสแกนภาพด้วย AI
+function triggerScanSlip() {
+    const apiKey = localStorage.getItem('GEMINI_API_KEY');
+    if (!apiKey) {
+        alert('กรุณากรอก Gemini API Key ก่อนใช้งานระบบสแกนภาพครับ');
+        if (typeof openApiKeyModal === 'function') openApiKeyModal();
+        return;
+    }
+    
+    const fileInput = document.getElementById('slipFileInput');
+    if (fileInput) {
+        fileInput.value = ''; // รีเซ็ตค่าเดิม
+        fileInput.click();
+    } else {
+        alert('ไม่พบแท็ก slipFileInput ในระบบ');
+    }
+}
 
-            let apiKey = localStorage.getItem('gemini_api_key');
-            if (!apiKey) { openApiKeyModal(); return; }
+// 2. ฟังก์ชันส่งภาพไปประมวลผลด้วย Gemini API
+async function processSlipImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const apiKey = localStorage.getItem('GEMINI_API_KEY');
+    if (!apiKey) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64Data = e.target.result.split(',')[1];
+        const mimeType = file.type || 'image/jpeg';
+
+        try {
+            // เรียกใช้ Gemini API (รุ่น Flash อ่านภาพได้เร็ว)
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "วิเคราะห์ภาพสลิป/ใบสั่งซื้อหุ้นหรือกองทุนนี้แล้วตอบเป็น JSON รูปแบบนี้เท่านั้น: {\"code\": \"สัญลักษณ์หุ้น\", \"units\": จำนวนหุ้น(number), \"avgNav\": ราคาต่อหุ้น(number)}" },
+                            { inline_data: { mime_type: mimeType, data: base64Data } }
+                        ]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             
-            apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
-
-            const loader = document.getElementById('aiLoader');
-            loader.classList.remove('hidden');
-
-            try {
-                const base64Image = await fileToBase64(file);
-                
-                const promptText = `
-                Analyze this stock investment portfolio screenshot or slip from the DIME! app.
-                Extract ALL visible stock tickers and their numbers:
-                - stock ticker (code)
-                - number of shares (units)
-                - average cost price in USD (avgNav)
-                - current price in USD (currentNav)
-                - today's gain/loss in USD (todayGain)
-
-                Return ONLY a valid JSON ARRAY of objects matching this schema (no markdown, no code block, just raw JSON text):
-                [
-                  {
-                    "code": "STOCK_TICKER (e.g. NVDA, AAPL, NEE)",
-                    "units": number_of_shares (float or null),
-                    "avgNav": average_cost_price_usd (float or null),
-                    "currentNav": current_price_usd (float or null),
-                    "todayGain": todays_gain_loss_usd (float or null)
-                  }
-                ]
-                If any value is missing, use null or 0.
-                `;
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Image } }
-                            ]
-                        }]
-                    })
-                });
-
-                const data = await response.json();
-                loader.classList.add('hidden');
-
-                if (data.error) {
-                    alert("Gemini Error: " + data.error.message);
-                    return;
-                }
-
-                let rawText = data.candidates[0].content.parts[0].text.trim();
-                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-                
-                const parsedData = JSON.parse(rawText);
-                const items = Array.isArray(parsedData) ? parsedData : [parsedData];
-
-                if (items.length === 0) {
-                    alert("AI ไม่พบข้อมูลหุ้นในรูปภาพนี้");
-                    return;
-                }
-
-                let updatedList = [];
-
-                items.forEach(item => {
-                    if (!item.code) return;
-                    const codeUpper = item.code.toUpperCase();
-                    const existingIndex = funds.findIndex(f => f.code.toUpperCase() === codeUpper);
-
-                    const newUnits = item.units ? parseFloat(item.units) : 0;
-                    const newAvgNav = item.avgNav ? parseFloat(item.avgNav) : 0;
-                    const newCurrentNav = item.currentNav ? parseFloat(item.currentNav) : newAvgNav;
-                    const newTodayGain = item.todayGain ? parseFloat(item.todayGain) : 0;
-
-                    if (existingIndex !== -1) {
-                        if (newUnits) funds[existingIndex].units = newUnits;
-                        if (newAvgNav) funds[existingIndex].avgNav = newAvgNav;
-                        if (newCurrentNav) funds[existingIndex].currentNav = newCurrentNav;
-                        funds[existingIndex].todayGain = newTodayGain;
-                    } else {
-                        funds.push({
-                            id: 'fund_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                            code: codeUpper,
-                            units: newUnits,
-                            avgNav: newAvgNav,
-                            currentNav: newCurrentNav,
-                            todayGain: newTodayGain,
-                            todayGainPct: 0,
-                            targetPct: 0
-                        });
+            if (textResponse) {
+                // ดึงข้อมูล JSON จากคำตอบของ AI
+                const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const result = JSON.parse(jsonMatch[0]);
+                    alert(`สแกนสำเร็จ!\nสัญลักษณ์: ${result.code || '-'}\nจำนวน: ${result.units || 0}\nราคา: $${result.avgNav || 0}`);
+                    
+                    // หากมีฟังก์ชันเปิด Modal เพิ่มหุ้น สามารถส่งค่าใส่ Form ได้ทันที
+                    if (typeof openFundModal === 'function') {
+                        openFundModal();
+                        setTimeout(() => {
+                            if (document.getElementById('fundCode')) document.getElementById('fundCode').value = result.code || '';
+                            if (document.getElementById('fundUnits')) document.getElementById('fundUnits').value = result.units || '';
+                            if (document.getElementById('fundAvgNav')) document.getElementById('fundAvgNav').value = result.avgNav || '';
+                        }, 200);
                     }
-                    updatedList.push(codeUpper);
-                });
-
-                if (updatedList.length > 0) {
-                    renderAll();
-                    saveToFirebase();
-                    alert(`AI สแกนและอัปเดตหุ้นสำเร็จ ${updatedList.length} รายการ:\n${updatedList.join(', ')}`);
                 } else {
-                    alert("ไม่สามารถดึงข้อมูลหุ้นจากภาพได้ โปรดลองภาพที่ชัดเจนขึ้น");
+                    alert('AI ไม่สามารถอ่านข้อมูลสลิปนี้ได้ กรุณาลองใช้อีกรูปครับ');
                 }
-
-            } catch (err) {
-                loader.classList.add('hidden');
-                console.error(err);
-                alert("เกิดข้อผิดพลาดในการประมวลผลรูปภาพ โปรดลองใหม่อีกครั้ง");
+            } else {
+                alert('เกิดข้อผิดพลาดจาก API: ' + (data.error?.message || 'ไม่สามารถประมวลผลได้'));
             }
+        } catch (err) {
+            console.error(err);
+            alert('ไม่สามารถเชื่อมต่อกับ Gemini AI ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือ API Key');
         }
+    };
+    reader.readAsDataURL(file);
+}
+        
         function openFundModal(id = null) {
             document.getElementById('editFundId').value = id || '';
             if (id) {
@@ -890,5 +851,7 @@ async function saveToFirebase() {
                 .catch((err) => console.error('Service Worker Error', err));
         }
     </script>
+<!-- Input ซ่อนสำหรับเลือกไฟล์รูปสลิป -->
+<input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="processSlipImage(event)">
 </body>
 </html>
