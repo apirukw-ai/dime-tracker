@@ -467,23 +467,28 @@ function renderHistoryChart(historyData) {
     });
 }
 
-// 4. วาดกราฟแท่ง Bar Chart (Profit Comparison)
+// 4. วาดกราฟแท่ง Bar Chart (Profit Comparison + % Label บนยอดกราฟ)
 function renderProfitBarChart(fundList) {
     const ctx = document.getElementById('profitBarChart')?.getContext('2d');
     if (!ctx || !fundList || fundList.length === 0) return;
 
     const labels = [];
     const profits = [];
+    const profitPcts = [];
     const colors = [];
 
     fundList.forEach(f => {
         const units = parseFloat(f.units) || 0;
         const avg = parseFloat(f.avgNav) || 0;
         const cur = parseFloat(f.currentNav) || avg;
-        const profit = (units * cur) - (units * avg);
+        
+        const cost = units * avg;
+        const profit = (units * cur) - cost;
+        const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
 
         labels.push(f.code || '-');
         profits.push(profit);
+        profitPcts.push(profitPct);
         colors.push(profit >= 0 ? '#10b981' : '#f43f5e');
     });
 
@@ -493,20 +498,63 @@ function renderProfitBarChart(fundList) {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{ label: 'กำไร/ขาดทุน ($)', data: profits, backgroundColor: colors, borderRadius: 6 }]
+            datasets: [{ 
+                label: 'กำไร/ขาดทุน ($)', 
+                data: profits, 
+                backgroundColor: colors, 
+                borderRadius: 6 
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            layout: {
+                padding: { top: 25, bottom: 25 } // เพิ่มเว้นระยะบน-ล่าง ไม่ให้ % ตกขอบ
+            },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const idx = context.dataIndex;
+                            const val = context.raw;
+                            const pct = profitPcts[idx];
+                            return ` กำไร/ขาดทุน: $${val.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+                        }
+                    }
+                }
+            },
             scales: {
                 x: { ticks: { color: '#64748b' }, grid: { display: false } },
                 y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
             }
-        }
+        },
+        plugins: [{
+            id: 'customBarLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, index) => {
+                    const meta = chart.getDatasetMeta(index);
+                    meta.data.forEach((bar, i) => {
+                        const pct = profitPcts[i];
+                        const value = dataset.data[i];
+                        if (pct !== undefined && !isNaN(pct)) {
+                            const text = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                            ctx.save();
+                            ctx.fillStyle = value >= 0 ? '#10b981' : '#f43f5e';
+                            ctx.font = 'bold 11px Inter, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
+                            const yPos = value >= 0 ? bar.y - 4 : bar.y + 4;
+                            ctx.fillText(text, bar.x, yPos);
+                            ctx.restore();
+                        }
+                    });
+                });
+            }
+        }]
     });
 }
-
 // เรียกใช้ API อัตราแลกเปลี่ยนเมื่อโหลดหน้าเว็บ
 document.addEventListener('DOMContentLoaded', () => {
     fetchUsdThbRate();
