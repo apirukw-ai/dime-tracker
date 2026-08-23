@@ -293,137 +293,229 @@
             }
         }
 
-function renderAll() {
+// === ตัวแปรและฟังก์ชันระบบเสริม (Sort / Backup / Rate) ===
+        let sortConfig = { key: null, direction: 'desc' };
+        let USD_THB_RATE = parseFloat(localStorage.getItem('USD_THB_RATE')) || 35.25;
+
+        function updateUsdRate(val) {
+            USD_THB_RATE = parseFloat(val) || 35.25;
+            localStorage.setItem('USD_THB_RATE', USD_THB_RATE);
+            renderAll();
+        }
+
+        function handleSort(key) {
+            if (sortConfig.key === key) {
+                sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortConfig.key = key;
+                sortConfig.direction = 'desc';
+            }
+            renderAll();
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(funds, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `dime_portfolio_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        funds = data;
+                        localStorage.setItem('funds', JSON.stringify(funds));
+                        renderAll();
+                        alert('นำเข้าข้อมูลเรียบร้อยแล้ว!');
+                    }
+                } catch (err) {
+                    alert('ไฟล์ JSON ไม่ถูกต้อง');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function getSortIcon(key) {
+            if (sortConfig.key !== key) return '<span class="text-slate-600 ml-1">⇅</span>';
+            return sortConfig.direction === 'asc' ? '<span class="text-emerald-400 ml-1">▲</span>' : '<span class="text-emerald-400 ml-1">▼</span>';
+        }
+
+        // === MAIN RENDER FUNCTION ===
+        function renderAll() {
             let totalVal = 0;
             let totalCost = 0;
             let dailyProfitSum = 0;
 
-            // จัดการ Header ตารางรายการหุ้นให้ตรงกับข้อมูล (ตัวย่อหุ้นชิดซ้าย)
+            // 1. ตรวจสอบ Container ตารางให้รองรับมือถือ (Responsive Overflow)
             const fundTable = document.getElementById('fundTableBody')?.closest('table');
+            if (fundTable && fundTable.parentElement && !fundTable.parentElement.classList.contains('overflow-x-auto')) {
+                fundTable.parentElement.classList.add('overflow-x-auto');
+            }
+
+            // 2. สร้าง Header รายการหุ้นแบบคลิกเรียงลำดับได้ + Alignment ตามมาตรฐานสากล
             if (fundTable) {
                 const thead = fundTable.querySelector('thead');
                 if (thead) {
                     thead.innerHTML = `
-                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
-                            <th class="py-3 px-4 text-left">ตัวย่อหุ้น</th>
-                            <th class="py-3 px-4 text-center">จำนวนหุ้น</th>
-                            <th class="py-3 px-4 text-center">ต้นทุนเฉลี่ย ($)</th>
-                            <th class="py-3 px-4 text-center">ราคาปัจจุบัน ($)</th>
-                            <th class="py-3 px-4 text-center">ต้นทุนรวม ($)</th>
-                            <th class="py-3 px-4 text-center">มูลค่าตลาด ($)</th>
-                            <th class="py-3 px-4 text-center">กำไรสะสม ($)</th>
-                            <th class="py-3 px-4 text-center">กำไรวันนี้ ($)</th>
+                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider select-none">
+                            <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white">ตัวย่อหุ้น ${getSortIcon('code')}</th>
+                            <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white">จำนวนหุ้น ${getSortIcon('units')}</th>
+                            <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
+                            <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
+                            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white">ต้นทุนรวม ($) ${getSortIcon('cost')}</th>
+                            <th onclick="handleSort('val')" class="py-3 px-4 text-right cursor-pointer hover:text-white">มูลค่าตลาด ($) ${getSortIcon('val')}</th>
+                            <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white">กำไรสะสม ($) ${getSortIcon('profit')}</th>
+                            <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
                             <th class="py-3 px-4 text-center">จัดการ</th>
                         </tr>
                     `;
                 }
             }
 
-            const tableBody = document.getElementById('fundTableBody');
-            if (tableBody) tableBody.innerHTML = '';
-
-            funds.forEach(f => {
-                const fCost = (f.units || 0) * (f.avgNav || 0);
-                const fVal = (f.units || 0) * (f.currentNav || f.avgNav || 0);
-                const profit = fVal - fCost;
-                const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
-                
+            // 3. คำนวณและประมวลผลข้อมูล
+            let processedFunds = funds.map(f => {
+                const cost = (f.units || 0) * (f.avgNav || 0);
+                const currentNav = f.currentNav || f.avgNav || 0;
+                const val = (f.units || 0) * currentNav;
+                const profit = val - cost;
+                const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
                 const todayGain = f.todayGain || 0;
-                const prevVal = fVal - todayGain;
+                const prevVal = val - todayGain;
                 const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
 
-                totalVal += fVal;
-                totalCost += fCost;
+                totalVal += val;
+                totalCost += cost;
                 dailyProfitSum += todayGain;
 
-                if (tableBody) {
+                return { ...f, cost, val, profit, profitPct, todayGain, todayGainPct, currentNav };
+            });
+
+            // 4. ระบบ Sort ข้อมูลก่อน Render
+            if (sortConfig.key) {
+                processedFunds.sort((a, b) => {
+                    let valA = a[sortConfig.key];
+                    let valB = b[sortConfig.key];
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            // 5. Render แถวข้อมูลตารางหุ้น (Right-Align & font-mono สำหรับตัวเลข)
+            const tableBody = document.getElementById('fundTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                processedFunds.forEach(f => {
                     const tr = document.createElement('tr');
-                    tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-center";
+                    tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 font-mono text-sm";
                     tr.innerHTML = `
-                        <td class="py-3 px-4 font-bold text-emerald-400 text-left">${f.code}</td>
-                        <td class="py-3 px-4 text-center">${(f.units || 0).toFixed(4)}</td>
-                        <td class="py-3 px-4 text-center">$${(f.avgNav || 0).toFixed(2)}</td>
-                        <td class="py-3 px-4 text-center">$${(f.currentNav || f.avgNav || 0).toFixed(2)}</td>
-                        <td class="py-3 px-4 text-center">$${fCost.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-center">$${fVal.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-center ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
+                        <td class="py-3 px-4 font-bold text-emerald-400 text-left font-sans">${f.code}</td>
+                        <td class="py-3 px-4 text-right">${(f.units || 0).toFixed(4)}</td>
+                        <td class="py-3 px-4 text-right">$${(f.avgNav || 0).toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right">$${f.currentNav.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right text-slate-300">$${f.cost.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right font-bold text-white">$${f.val.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right ${f.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${f.profit >= 0 ? '+' : ''}$${f.profit.toFixed(2)} (${f.profitPct >= 0 ? '+' : ''}${f.profitPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3 px-4 text-center ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
+                        <td class="py-3 px-4 text-right ${f.todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${f.todayGain >= 0 ? '+' : ''}$${f.todayGain.toFixed(2)} (${f.todayGainPct >= 0 ? '+' : ''}${f.todayGainPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3 px-4 text-center space-x-2">
+                        <td class="py-3 px-4 text-center font-sans space-x-2">
                             <button onclick="openFundModal('${f.id}')" class="text-slate-400 hover:text-white transition">✏️</button>
                             <button onclick="deleteFund('${f.id}')" class="text-slate-400 hover:text-rose-400 transition">🗑️</button>
                         </td>
                     `;
                     tableBody.appendChild(tr);
-                }
-            });
+                });
+            }
 
             const totalProfit = totalVal - totalCost;
             const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
             const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
-            const USD_THB_RATE = 35.25;
 
-            // แถบสรุปผลรวมท้ายตาราง (tfoot)
+            // 6. แถบสรุปผลรวมท้ายตาราง (tfoot)
             if (fundTable) {
                 let tfoot = fundTable.querySelector('tfoot');
                 if (!tfoot) {
                     tfoot = document.createElement('tfoot');
                     fundTable.appendChild(tfoot);
                 }
-                tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-center";
+                tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 font-mono text-sm";
                 tfoot.innerHTML = `
                     <tr>
-                        <td class="py-3.5 px-4 text-left text-slate-200 font-bold">รวมทั้งหมด</td>
-                        <td class="py-3.5 px-4 text-center text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-center text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-center text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-center text-white">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-center text-white">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-center ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                        <td class="py-3.5 px-4 text-right text-slate-200">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="py-3.5 px-4 text-right text-white font-bold">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
                             ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3.5 px-4 text-center ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        <td class="py-3.5 px-4 text-right ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
                             ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3.5 px-4 text-center"></td>
+                        <td class="py-3.5 px-4 text-center font-sans"></td>
                     </tr>
                 `;
             }
 
-            // การ์ดสรุปยอด
+            // 7. การ์ดสรุปยอด + ช่องกรอกเรท USD/THB + เครื่องมือ Backup
             const summaryContainer = document.getElementById('totalCostDisplay')?.closest('.grid');
             if (summaryContainer) {
                 summaryContainer.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6";
                 summaryContainer.innerHTML = `
                     <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">ยอดต้นทุนรวม</div>
-                        <div class="text-2xl font-bold text-white">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                        <div class="text-xs text-emerald-400 mt-1">≈ ฿${(totalCost * USD_THB_RATE).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB</div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">ยอดต้นทุนรวม</span>
+                            <span class="text-xs text-slate-400 font-mono">1 USD = <input type="number" step="0.01" value="${USD_THB_RATE}" onchange="updateUsdRate(this.value)" class="w-14 bg-slate-900 border border-slate-700 rounded px-1 text-right text-emerald-400 font-bold focus:outline-none"> THB</span>
+                        </div>
+                        <div class="text-2xl font-bold font-mono text-white">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-xs font-mono text-emerald-400 mt-1">≈ ฿${(totalCost * USD_THB_RATE).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB</div>
                     </div>
                     <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
                         <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">มูลค่าพอร์ตรวม</div>
-                        <div class="text-2xl font-bold text-white">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                        <div class="text-xs text-emerald-400 mt-1">≈ ฿${(totalVal * USD_THB_RATE).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB</div>
+                        <div class="text-2xl font-bold font-mono text-white">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-xs font-mono text-emerald-400 mt-1">≈ ฿${(totalVal * USD_THB_RATE).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB</div>
                     </div>
                     <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
                         <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">กำไรสะสม (TOTAL GAIN)</div>
-                        <div class="text-2xl font-bold ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        <div class="text-2xl font-bold font-mono ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
                             ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </div>
-                        <div class="text-xs ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">
+                        <div class="text-xs font-mono ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">
                             ${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม
                         </div>
                     </div>
-                    <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">กำไรทุนวันนี้ (TODAY'S GAIN)</div>
-                        <div class="text-2xl font-bold ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">กำไรทุนวันนี้ (TODAY'S GAIN)</div>
+                            <div class="text-2xl font-bold font-mono ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                                ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </div>
                         </div>
-                        <div class="text-xs ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">
-                            ${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้
+                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-700/50">
+                            <span class="text-xs font-mono ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                                ${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้
+                            </span>
+                            <div class="flex gap-1">
+                                <button onclick="exportData()" title="สำรองข้อมูล JSON" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 rounded transition">📥 Backup</button>
+                                <label title="นำเข้าข้อมูล JSON" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 rounded cursor-pointer transition">
+                                    📤 Import <input type="file" accept=".json" onchange="importData(this)" class="hidden">
+                                </label>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -432,22 +524,28 @@ function renderAll() {
             renderAllocation(totalVal);
         }
 
+        // === REBALANCE CALCULATOR & ALLOCATION TABLE ===
         function renderAllocation(totalVal) {
             const allocBody = document.getElementById('allocTableBody') || document.getElementById('rebalanceTableBody');
             if (!allocBody) return;
 
-            // จัดการ Header ตารางสัดส่วนเป้าหมาย (ตัวย่อหุ้นชิดซ้าย)
             const allocTable = allocBody.closest('table');
+            if (allocTable && allocTable.parentElement && !allocTable.parentElement.classList.contains('overflow-x-auto')) {
+                allocTable.parentElement.classList.add('overflow-x-auto');
+            }
+
             if (allocTable) {
                 const thead = allocTable.querySelector('thead');
                 if (thead) {
                     thead.innerHTML = `
                         <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
                             <th class="py-3 px-4 text-left">ตัวย่อหุ้น</th>
-                            <th class="py-3 px-4 text-center">ราคาปัจจุบัน ($)</th>
-                            <th class="py-3 px-4 text-center">สัดส่วนปัจจุบัน (%)</th>
-                            <th class="py-3 px-4 text-center">สัดส่วนเป้าหมาย (%)</th>
-                            <th class="py-3 px-4 text-center">ส่วนต่าง (%)</th>
+                            <th class="py-3 px-4 text-right">ราคาปัจจุบัน ($)</th>
+                            <th class="py-3 px-4 text-right">สัดส่วนปัจจุบัน (%)</th>
+                            <th class="py-3 px-4 text-right">สัดส่วนเป้าหมาย (%)</th>
+                            <th class="py-3 px-4 text-right">ส่วนต่าง (%)</th>
+                            <th class="py-3 px-4 text-right">ปรับเงิน ($)</th>
+                            <th class="py-3 px-4 text-right">ปรับจำนวนหุ้น</th>
                         </tr>
                     `;
                 }
@@ -456,20 +554,32 @@ function renderAll() {
             allocBody.innerHTML = '';
 
             funds.forEach(f => {
-                const fVal = (f.units || 0) * (f.currentNav || f.avgNav || 0);
+                const currentNav = f.currentNav || f.avgNav || 0;
+                const fVal = (f.units || 0) * currentNav;
                 const currentPct = totalVal > 0 ? (fVal / totalVal) * 100 : 0;
                 const targetPct = f.targetPct || 0;
                 const diffPct = currentPct - targetPct;
 
+                // คำนวณระบบ Rebalance (การปรับพอร์ต)
+                const targetVal = totalVal * (targetPct / 100);
+                const rebalanceAmt = targetVal - fVal; // ถ้าบวก = ควรซื้อเพิ่ม, ถ้าลบ = ควรขายออก
+                const rebalanceShares = currentNav > 0 ? rebalanceAmt / currentNav : 0;
+
                 const tr = document.createElement('tr');
-                tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-center";
+                tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 font-mono text-sm";
                 tr.innerHTML = `
-                    <td class="py-3 px-4 font-bold text-slate-200 text-left">${f.code}</td>
-                    <td class="py-3 px-4 text-center">$${(f.currentNav || f.avgNav || 0).toFixed(2)}</td>
-                    <td class="py-3 px-4 text-center">${currentPct.toFixed(2)}%</td>
-                    <td class="py-3 px-4 text-center">${targetPct.toFixed(1)}%</td>
-                    <td class="py-3 px-4 text-center font-bold ${diffPct >= 0 ? 'text-rose-400' : 'text-emerald-400'}">
+                    <td class="py-3 px-4 font-bold text-slate-200 text-left font-sans">${f.code}</td>
+                    <td class="py-3 px-4 text-right">$${currentNav.toFixed(2)}</td>
+                    <td class="py-3 px-4 text-right">${currentPct.toFixed(2)}%</td>
+                    <td class="py-3 px-4 text-right text-slate-400">${targetPct.toFixed(1)}%</td>
+                    <td class="py-3 px-4 text-right font-bold ${diffPct >= 0 ? 'text-rose-400' : 'text-emerald-400'}">
                         ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold ${rebalanceAmt >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${rebalanceAmt >= 0 ? '+ซื้อ' : '-ขาย'} $${Math.abs(rebalanceAmt).toFixed(2)}
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold ${rebalanceShares >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${rebalanceShares >= 0 ? '+' : ''}${rebalanceShares.toFixed(4)} หุ้น
                     </td>
                 `;
                 allocBody.appendChild(tr);
