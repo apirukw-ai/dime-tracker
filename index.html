@@ -70,6 +70,9 @@
         th { font-weight: 700; color: #00e599; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(15, 23, 42, 0.3); }
         tr:hover td { background-color: rgba(51, 65, 85, 0.4); }
     </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
 </head>
 <body class="py-6 px-3 sm:px-8">
 
@@ -144,6 +147,39 @@
         <p id="dailyProfitSub" class="text-xs text-slate-400 mt-1 font-medium">+0.00% จากการเปลี่ยนแปลงวันนี้</p>
     </div>
 </div>
+
+<!-- แถบแสดงอัตราแลกเปลี่ยน Real-time -->
+<div class="flex justify-between items-center mb-4 px-1">
+    <div class="flex items-center text-xs text-slate-400 gap-2 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/60 shadow-sm">
+        <span>💱 อัตราแลกเปลี่ยนปัจจุบัน:</span>
+        <span id="usdThbBadge" class="font-bold text-emerald-400 font-mono">1 USD = --.-- THB</span>
+        <span class="text-[10px] text-slate-500">(Dynamic API)</span>
+    </div>
+</div>
+
+<!-- โซนแสดงกราฟ 2 รูปแบบ (Grid 2 คอลัมน์) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Line Chart: เทรนด์พอร์ตสะสม -->
+    <div class="card-slate p-5">
+        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <span>📈</span> แนวโน้มมูลค่าพอร์ตสะสม (Portfolio History)
+        </h3>
+        <div class="h-60 relative">
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Bar Chart: เปรียบเทียบกำไรรายตัว -->
+    <div class="card-slate p-5">
+        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <span>📊</span> เปรียบเทียบกำไร/ขาดทุน รายหุ้น ($)
+        </h3>
+        <div class="h-60 relative">
+            <canvas id="profitBarChart"></canvas>
+        </div>
+    </div>
+</div>
+        
         <!-- Target Allocation Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <h3 class="text-xs font-bold text-dime mb-3 flex items-center gap-2 uppercase tracking-wider">
@@ -359,6 +395,123 @@
             window.livePriceInterval = setInterval(fetchLivePrices, 60000);
         }
 
+let historyChartInstance = null;
+let profitBarChartInstance = null;
+
+// 1. ดึงอัตราแลกเปลี่ยน Real-time จาก API ฟรี
+async function fetchUsdThbRate() {
+    try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data && data.rates && data.rates.THB) {
+            const rate = data.rates.THB;
+            window.USD_THB_RATE = rate;
+            window.usdThbRate = rate;
+            const badge = document.getElementById('usdThbBadge');
+            if (badge) badge.innerText = `1 USD = ${rate.toFixed(2)} THB`;
+        }
+    } catch (e) {
+        console.error("Error fetching USD/THB rate:", e);
+        window.USD_THB_RATE = window.USD_THB_RATE || 35.25;
+    }
+}
+
+// 2. ระบบบันทึกประวัติพอร์ตอัตโนมัติ (Portfolio History Log)
+function logPortfolioHistory(totalVal, totalCost) {
+    if (!totalVal || totalVal <= 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    let history = JSON.parse(localStorage.getItem('PORTFOLIO_HISTORY') || '[]');
+    
+    const existingIndex = history.findIndex(item => item.date === today);
+    if (existingIndex >= 0) {
+        history[existingIndex].val = totalVal;
+        history[existingIndex].cost = totalCost;
+    } else {
+        history.push({ date: today, val: totalVal, cost: totalCost });
+    }
+
+    if (history.length > 30) history = history.slice(-30); // บันทึกย้อนหลังสูงสุด 30 วัน
+    localStorage.setItem('PORTFOLIO_HISTORY', JSON.stringify(history));
+    renderHistoryChart(history);
+}
+
+// 3. วาดกราฟเส้น Line Chart (History Trend)
+function renderHistoryChart(historyData) {
+    const ctx = document.getElementById('historyChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const labels = historyData.map(h => h.date);
+    const values = historyData.map(h => h.val);
+    const costs = historyData.map(h => h.cost);
+
+    if (historyChartInstance) historyChartInstance.destroy();
+
+    historyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'มูลค่าพอร์ต ($)', data: values, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 },
+                { label: 'ต้นทุนรวม ($)', data: costs, borderColor: '#64748b', borderDash: [4, 4], fill: false, tension: 0.3 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+
+// 4. วาดกราฟแท่ง Bar Chart (Profit Comparison)
+function renderProfitBarChart(fundList) {
+    const ctx = document.getElementById('profitBarChart')?.getContext('2d');
+    if (!ctx || !fundList || fundList.length === 0) return;
+
+    const labels = [];
+    const profits = [];
+    const colors = [];
+
+    fundList.forEach(f => {
+        const units = parseFloat(f.units) || 0;
+        const avg = parseFloat(f.avgNav) || 0;
+        const cur = parseFloat(f.currentNav) || avg;
+        const profit = (units * cur) - (units * avg);
+
+        labels.push(f.code || '-');
+        profits.push(profit);
+        colors.push(profit >= 0 ? '#10b981' : '#f43f5e');
+    });
+
+    if (profitBarChartInstance) profitBarChartInstance.destroy();
+
+    profitBarChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{ label: 'กำไร/ขาดทุน ($)', data: profits, backgroundColor: colors, borderRadius: 6 }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+
+// เรียกใช้ API อัตราแลกเปลี่ยนเมื่อโหลดหน้าเว็บ
+document.addEventListener('DOMContentLoaded', () => {
+    fetchUsdThbRate();
+});
+        
 function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
     // ดึงอัตราแลกเปลี่ยน Dynamic Real-time (หากดึงไม่สำเร็จจะใช้ค่าสำรอง 35.25)
     const rate = window.USD_THB_RATE || window.usdThbRate || 35.25;
@@ -575,6 +728,12 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                     </tr>
                 `;
             }
+
+// บันทึกประวัติและอัปเดตกราฟทั้งสอง
+logPortfolioHistory(totalVal, totalCost);
+renderProfitBarChart(fundList);
+
+renderAllocation(totalVal); // <-- บรรทัดเดิมที่มีอยู่แล้ว
 
             renderAllocation(totalVal);
         }
