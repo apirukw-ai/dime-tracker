@@ -136,7 +136,7 @@
         <!-- Target Allocation Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <h3 class="text-xs font-bold text-dime mb-3 flex items-center gap-2 uppercase tracking-wider">
-                <i class="fa-solid fa-sliders"></i> สัดส่วนเป้าหมาย & Rebalance พอร์ต DIME
+                <i class="fa-solid fa-sliders"></i> สัดส่วนเป้าหมาย
             </h3>
             <table>
                 <thead>
@@ -156,7 +156,7 @@
         <div class="card-slate p-5 overflow-x-auto">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                    <i class="fa-solid fa-list-check text-dime"></i> รายการหุ้นในพอร์ต DIME
+                    <i class="fa-solid fa-list-check text-dime"></i> รายการหุ้นในพอร์ต
                 </h3>
             </div>
             <table>
@@ -327,7 +327,10 @@ function renderAll() {
                 const fVal = (f.units || 0) * (f.currentNav || f.avgNav || 0);
                 const profit = fVal - fCost;
                 const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
+                
                 const todayGain = f.todayGain || 0;
+                const prevVal = fVal - todayGain;
+                const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
 
                 totalVal += fVal;
                 totalCost += fCost;
@@ -347,7 +350,7 @@ function renderAll() {
                             ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
                         </td>
                         <td class="py-3 px-4 text-center ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)}
+                            ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
                         </td>
                         <td class="py-3 px-4 text-center space-x-2">
                             <button onclick="openFundModal('${f.id}')" class="text-slate-400 hover:text-white transition">✏️</button>
