@@ -290,7 +290,52 @@ async function loadData() {
                 funds = (typeof defaultFunds !== 'undefined') ? defaultFunds : [];
             }
             renderAll();
+            
+            // ดึงราคา Real-time ทันทีที่โหลดหน้าเว็บเสร็จ
+            fetchLivePrices();
         }
+
+        // ฟังก์ชันดึงราคาหุ้น Real-time จากตลาดหุ้นสหรัฐฯ
+        async function fetchLivePrices() {
+            if (!funds || funds.length === 0) return;
+
+            const tickers = funds.map(f => f.code).filter(Boolean).join(',');
+            if (!tickers) return;
+
+            try {
+                const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tickers)}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                
+                const results = data?.quoteResponse?.result || [];
+                if (results.length > 0) {
+                    results.forEach(quote => {
+                        const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
+                        if (fund) {
+                            // อัปเดตราคาปัจจุบัน ($)
+                            if (quote.regularMarketPrice) {
+                                fund.currentNav = quote.regularMarketPrice;
+                            }
+                            // อัปเดตกำไร/ขาดทุนวันนี้ ($)
+                            if (quote.regularMarketChange) {
+                                const units = parseFloat(fund.units) || 0;
+                                fund.todayGain = quote.regularMarketChange * units;
+                            }
+                        }
+                    });
+                    
+                    // คำนวณและวาดตารางใหม่ด้วยราคา Real-time
+                    renderAll();
+                }
+            } catch (err) {
+                console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
+            }
+        }
+
+        // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที (1 นาที)
+        setInterval(fetchLivePrices, 60000);
 
 function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
             const rate = window.USD_THB_RATE || 35.25;
