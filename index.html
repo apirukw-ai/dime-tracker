@@ -292,16 +292,101 @@ async function loadData() {
             renderAll();
         }
 
+function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
+            const rate = window.USD_THB_RATE || 35.25;
+            const totalValThb = totalVal * rate;
+
+            // อัปเดตผ่าน ID มาตรฐาน (ถ้ามี)
+            const setElText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setElText('totalCostDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('totalValueDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('totalGainDisplay', `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+            setElText('todayGainDisplay', `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+
+            // ค้นหาและอัปเดตการ์ดสรุปตามข้อความโดยอัตโนมัติ
+            const allDivs = Array.from(document.querySelectorAll('div'));
+            
+            // การ์ดที่ 1: ยอดลงทุนรวม
+            const card1 = allDivs.find(d => d.children.length > 0 && d.innerText && (d.innerText.includes('ยอดลงทุนรวม') || d.innerText.includes('ยอดต้นทุนรวม')));
+            if (card1) {
+                const valEl = card1.querySelector('.text-2xl, .text-3xl, .font-bold, h2, h3');
+                if (valEl) valEl.innerText = `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                const thbEl = card1.querySelector('.text-xs, .text-sm, span');
+                if (thbEl && thbEl !== valEl) thbEl.innerText = `≈ ฿${totalValThb.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
+            }
+
+            // การ์ดที่ 2: TOTAL GAIN
+            const card2 = allDivs.find(d => d.children.length > 0 && d.innerText && d.innerText.includes('TOTAL GAIN'));
+            if (card2) {
+                const valEl = card2.querySelector('.text-2xl, .text-3xl, .font-bold, h2, h3');
+                if (valEl) {
+                    valEl.innerText = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    valEl.className = valEl.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (totalProfit >= 0 ? ' text-emerald-400' : ' text-rose-400');
+                }
+                const pctEl = card2.querySelector('.text-xs, .text-sm, span');
+                if (pctEl && pctEl !== valEl) pctEl.innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม`;
+            }
+
+            // การ์ดที่ 3: TODAY'S GAIN
+            const card3 = allDivs.find(d => d.children.length > 0 && d.innerText && d.innerText.includes("TODAY'S GAIN"));
+            if (card3) {
+                const valEl = card3.querySelector('.text-2xl, .text-3xl, .font-bold, h2, h3');
+                if (valEl) {
+                    valEl.innerText = `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    valEl.className = valEl.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (dailyProfitSum >= 0 ? ' text-emerald-400' : ' text-rose-400');
+                }
+                const pctEl = card3.querySelector('.text-xs, .text-sm, span');
+                if (pctEl && pctEl !== valEl) pctEl.innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% การเปลี่ยนแปลงวันนี้`;
+            }
+        }
+
         function renderAll() {
             const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
+            
             let totalVal = 0;
             let totalCost = 0;
             let dailyProfitSum = 0;
 
-            const tableBody = document.getElementById('fundTableBody');
+            // 1. ประมวลผลและคำนวณตัวเลขพอร์ตล่วงหน้า
+            const processedFunds = fundList.map(f => {
+                const units = parseFloat(f.units) || 0;
+                const avgNav = parseFloat(f.avgNav) || 0;
+                const currentNav = parseFloat(f.currentNav) || avgNav;
+                
+                const fCost = units * avgNav;
+                const fVal = units * currentNav;
+                const profit = fVal - fCost;
+                const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
+                
+                const todayGain = parseFloat(f.todayGain) || 0;
+                const prevVal = fVal - todayGain;
+                const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
+
+                totalVal += fVal;
+                totalCost += fCost;
+                dailyProfitSum += todayGain;
+
+                return { ...f, units, avgNav, currentNav, fCost, fVal, profit, profitPct, todayGain, todayGainPct };
+            });
+
+            const totalProfit = totalVal - totalCost;
+            const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+            const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
+
+            // 2. อัปเดตการ์ดสรุปยอดด้านบน
+            updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct);
+
+            // 3. ค้นหาตารางรายการหุ้นอย่างยืดหยุ่น (Fallback)
+            let tableBody = document.getElementById('fundTableBody') || document.getElementById('portfolioTableBody');
+            if (!tableBody) {
+                const tbodies = document.querySelectorAll('tbody');
+                if (tbodies.length >= 2) tableBody = tbodies[1];
+                else if (tbodies.length === 1) tableBody = tbodies[0];
+            }
+
             const fundTable = tableBody ? tableBody.closest('table') : null;
 
-            // 1. ปรับ Header ตารางรายการหุ้น (ตัวย่อหุ้นชิดซ้าย / ตัวเลขชิดขวา)
+            // 4. ปรับ Header ตารางรายการหุ้น
             if (fundTable) {
                 const thead = fundTable.querySelector('thead');
                 if (thead) {
@@ -321,41 +406,24 @@ async function loadData() {
                 }
             }
 
-            // 2. Render แถวข้อมูลตารางหุ้น
+            // 5. Render แถวข้อมูลตารางหุ้น
             if (tableBody) {
                 tableBody.innerHTML = '';
-                fundList.forEach(f => {
-                    const units = parseFloat(f.units) || 0;
-                    const avgNav = parseFloat(f.avgNav) || 0;
-                    const currentNav = parseFloat(f.currentNav) || avgNav;
-                    
-                    const fCost = units * avgNav;
-                    const fVal = units * currentNav;
-                    const profit = fVal - fCost;
-                    const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
-                    
-                    const todayGain = parseFloat(f.todayGain) || 0;
-                    const prevVal = fVal - todayGain;
-                    const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
-
-                    totalVal += fVal;
-                    totalCost += fCost;
-                    dailyProfitSum += todayGain;
-
+                processedFunds.forEach(f => {
                     const tr = document.createElement('tr');
                     tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-sm font-mono";
                     tr.innerHTML = `
                         <td class="py-3 px-4 font-bold text-emerald-400 text-left font-sans">${f.code || '-'}</td>
-                        <td class="py-3 px-4 text-right">${units.toFixed(4)}</td>
-                        <td class="py-3 px-4 text-right">$${avgNav.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right">$${currentNav.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right text-slate-300">$${fCost.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right font-bold text-white">$${fVal.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
+                        <td class="py-3 px-4 text-right">${f.units.toFixed(4)}</td>
+                        <td class="py-3 px-4 text-right">$${f.avgNav.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right">$${f.currentNav.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right text-slate-300">$${f.fCost.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right font-bold text-white">$${f.fVal.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right ${f.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${f.profit >= 0 ? '+' : ''}$${f.profit.toFixed(2)} (${f.profitPct >= 0 ? '+' : ''}${f.profitPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3 px-4 text-right ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
+                        <td class="py-3 px-4 text-right ${f.todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${f.todayGain >= 0 ? '+' : ''}$${f.todayGain.toFixed(2)} (${f.todayGainPct >= 0 ? '+' : ''}${f.todayGainPct.toFixed(2)}%)
                         </td>
                         <td class="py-3 px-4 text-center font-sans space-x-2">
                             <button onclick="openFundModal('${f.id}')" class="text-slate-400 hover:text-white transition">✏️</button>
@@ -366,11 +434,7 @@ async function loadData() {
                 });
             }
 
-            const totalProfit = totalVal - totalCost;
-            const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-            const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
-
-            // 3. แถบสรุปผลรวมท้ายตาราง (tfoot)
+            // 6. แถบสรุปผลรวมท้ายตาราง (tfoot)
             if (fundTable) {
                 let tfoot = fundTable.querySelector('tfoot');
                 if (!tfoot) {
@@ -402,7 +466,13 @@ async function loadData() {
 
         function renderAllocation(totalVal) {
             const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
-            const allocBody = document.getElementById('allocTableBody') || document.getElementById('rebalanceTableBody');
+            let allocBody = document.getElementById('allocTableBody') || document.getElementById('rebalanceTableBody');
+            
+            if (!allocBody) {
+                const tbodies = document.querySelectorAll('tbody');
+                if (tbodies.length >= 1) allocBody = tbodies[0];
+            }
+
             if (!allocBody) return;
 
             const allocTable = allocBody.closest('table');
