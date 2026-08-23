@@ -295,9 +295,26 @@ async function loadData() {
             fetchLivePrices();
         }
 
-        // ฟังก์ชันดึงราคาหุ้น Real-time จากตลาดหุ้นสหรัฐฯ
+// ฟังก์ชันดึงราคาหุ้น Real-time พร้อมเอฟเฟกต์กระพริบแจ้งเตือน
         async function fetchLivePrices() {
             if (!funds || funds.length === 0) return;
+
+            // เพิ่ม Style สำหรับ Effect กระพริบ (ถ้ายังไม่มีในระบบ)
+            if (!document.getElementById('live-flash-style')) {
+                const style = document.createElement('style');
+                style.id = 'live-flash-style';
+                style.innerHTML = `
+                    @keyframes priceGlow {
+                        0% { background-color: rgba(52, 211, 153, 0.4); text-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+                        100% { background-color: transparent; }
+                    }
+                    .flash-updated {
+                        animation: priceGlow 1.2s ease-out;
+                        border-radius: 4px;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
 
             const tickers = funds.map(f => f.code).filter(Boolean).join(',');
             if (!tickers) return;
@@ -314,93 +331,30 @@ async function loadData() {
                     results.forEach(quote => {
                         const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
                         if (fund) {
-                            // อัปเดตราคาปัจจุบัน ($)
-                            if (quote.regularMarketPrice) {
-                                fund.currentNav = quote.regularMarketPrice;
-                            }
-                            // อัปเดตกำไร/ขาดทุนวันนี้ ($)
+                            if (quote.regularMarketPrice) fund.currentNav = quote.regularMarketPrice;
                             if (quote.regularMarketChange) {
                                 const units = parseFloat(fund.units) || 0;
                                 fund.todayGain = quote.regularMarketChange * units;
                             }
+                            // ทำเครื่องหมายว่าหุ้นตัวนี้เพิ่งถูกอัปเดตราคา
+                            fund.justUpdated = true;
                         }
                     });
                     
-                    // คำนวณและวาดตารางใหม่ด้วยราคา Real-time
-                    renderAll();
+                    // แสดงผลใหม่พร้อมเปิดใช้งาน Effect กระพริบ
+                    renderAll(true);
                 }
             } catch (err) {
                 console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
             }
         }
 
-        // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที (1 นาที)
-        setInterval(fetchLivePrices, 60000);
-
-function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
-            const rate = window.USD_THB_RATE || 35.25;
-            const totalValThb = totalVal * rate;
-
-            // 1. อัปเดตผ่าน ID มาตรฐาน
-            const setElText = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-            setElText('totalCostDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
-            setElText('totalValueDisplay', `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
-            setElText('totalGainDisplay', `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
-            setElText('todayGainDisplay', `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
-
-            // 2. ค้นหาการ์ดบนหน้าจอตามข้อความหัวข้อ
-            document.querySelectorAll('div').forEach(card => {
-                if (card.children.length >= 1 && card.children.length <= 6) {
-                    const text = card.innerText || '';
-                    
-                    // การ์ด 1: ยอดลงทุนรวม
-                    if (text.includes('ยอดลงทุนรวม') || text.includes('ยอดต้นทุนรวม')) {
-                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
-                            if (node.children.length === 0) {
-                                if (node.innerText.includes('$')) node.innerText = `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                                else if (node.innerText.includes('THB') || node.innerText.includes('฿')) node.innerText = `≈ ฿${totalValThb.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
-                            }
-                        });
-                    }
-                    
-                    // การ์ด 2: TOTAL GAIN
-                    if (text.includes('TOTAL GAIN')) {
-                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
-                            if (node.children.length === 0) {
-                                if (node.innerText.includes('$')) {
-                                    node.innerText = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                                    node.className = node.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (totalProfit >= 0 ? ' text-emerald-400' : ' text-rose-400');
-                                } else if (node.innerText.includes('จากต้นทุน')) {
-                                    node.innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม`;
-                                }
-                            }
-                        });
-                    }
-
-                    // การ์ด 3: TODAY'S GAIN
-                    if (text.includes("TODAY'S GAIN")) {
-                        card.querySelectorAll('p, span, h1, h2, h3, div').forEach(node => {
-                            if (node.children.length === 0) {
-                                if (node.innerText.includes('$')) {
-                                    node.innerText = `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                                    node.className = node.className.replace(/text-(emerald|rose|white|slate)-\d+/g, '').trim() + (dailyProfitSum >= 0 ? ' text-emerald-400' : ' text-rose-400');
-                                } else if (node.innerText.includes('การเปลี่ยนแปลง')) {
-                                    node.innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% จากการเปลี่ยนแปลงวันนี้`;
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-
-        function renderAll() {
+        function renderAll(isLiveUpdate = false) {
             const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
             let totalVal = 0;
             let totalCost = 0;
             let dailyProfitSum = 0;
 
-            // 1. คำนวณยอดรวมทั้งหมด
             fundList.forEach(f => {
                 const units = parseFloat(f.units) || 0;
                 const avgNav = parseFloat(f.avgNav) || 0;
@@ -416,10 +370,8 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
             const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
             const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
 
-            // 2. อัปเดตการ์ดสรุปยอดด้านบน
             updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct);
 
-            // 3. ระบุตารางรายการหุ้นในพอร์ต (ตารางที่ 2 บนหน้าเว็บ)
             const tables = document.querySelectorAll('table');
             const fundTable = tables.length > 1 ? tables[1] : tables[0];
             
@@ -430,25 +382,6 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                     fundTable.appendChild(tableBody);
                 }
 
-                // ปรับ Header
-                const thead = fundTable.querySelector('thead');
-                if (thead) {
-                    thead.innerHTML = `
-                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
-                            <th class="py-3 px-4 text-left">สัญลักษณ์</th>
-                            <th class="py-3 px-4 text-right">จำนวนหุ้น</th>
-                            <th class="py-3 px-4 text-right">ต้นทุนเฉลี่ย ($)</th>
-                            <th class="py-3 px-4 text-right">ราคาปัจจุบัน ($)</th>
-                            <th class="py-3 px-4 text-right">ต้นทุนรวม ($)</th>
-                            <th class="py-3 px-4 text-right">มูลค่าตลาด ($)</th>
-                            <th class="py-3 px-4 text-right">กำไร/ขาดทุนสะสม ($)</th>
-                            <th class="py-3 px-4 text-right">กำไร/ขาดทุนวันนี้ ($)</th>
-                            <th class="py-3 px-4 text-center">จัดการ</th>
-                        </tr>
-                    `;
-                }
-
-                // แสดงแถวรายการหุ้น
                 tableBody.innerHTML = '';
                 fundList.forEach(f => {
                     const units = parseFloat(f.units) || 0;
@@ -462,19 +395,22 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                     const prevVal = fVal - todayGain;
                     const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
 
+                    // เช็กว่าจะใส่ คลาสกระพริบ หรือไม่
+                    const flashClass = (isLiveUpdate && f.justUpdated) ? 'flash-updated' : '';
+
                     const tr = document.createElement('tr');
                     tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-sm font-mono";
                     tr.innerHTML = `
                         <td class="py-3 px-4 font-bold text-emerald-400 text-left font-sans">${f.code || '-'}</td>
                         <td class="py-3 px-4 text-right">${units.toFixed(4)}</td>
                         <td class="py-3 px-4 text-right">$${avgNav.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right">$${currentNav.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right ${flashClass}">$${currentNav.toFixed(2)}</td>
                         <td class="py-3 px-4 text-right text-slate-300">$${fCost.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right font-bold text-white">$${fVal.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        <td class="py-3 px-4 text-right font-bold text-white ${flashClass}">$${fVal.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-right ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'} ${flashClass}">
                             ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
                         </td>
-                        <td class="py-3 px-4 text-right ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        <td class="py-3 px-4 text-right ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'} ${flashClass}">
                             ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
                         </td>
                         <td class="py-3 px-4 text-center font-sans space-x-2">
@@ -483,32 +419,10 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                         </td>
                     `;
                     tableBody.appendChild(tr);
+                    
+                    // เคลียร์สถานะการอัปเดตหลังจากวาดตารางแล้ว
+                    f.justUpdated = false;
                 });
-
-                // สร้างแถบสรุปผลรวมท้ายตาราง (tfoot)
-                let tfoot = fundTable.querySelector('tfoot');
-                if (!tfoot) {
-                    tfoot = document.createElement('tfoot');
-                    fundTable.appendChild(tfoot);
-                }
-                tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-sm font-mono";
-                tfoot.innerHTML = `
-                    <tr>
-                        <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-200">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-right text-white font-bold">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3.5 px-4 text-right ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3.5 px-4 text-center font-sans"></td>
-                    </tr>
-                `;
             }
 
             renderAllocation(totalVal);
