@@ -298,6 +298,27 @@ function renderAll() {
             let totalCost = 0;
             let dailyProfitSum = 0;
 
+            // จัดการ Header ตารางรายการหุ้นให้ตรงกับข้อมูล (text-center)
+            const fundTable = document.getElementById('fundTableBody')?.closest('table');
+            if (fundTable) {
+                const thead = fundTable.querySelector('thead');
+                if (thead) {
+                    thead.innerHTML = `
+                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="py-3 px-4 text-center">สัญลักษณ์</th>
+                            <th class="py-3 px-4 text-center">จำนวนหุ้น</th>
+                            <th class="py-3 px-4 text-center">ต้นทุนเฉลี่ย ($)</th>
+                            <th class="py-3 px-4 text-center">ราคาปัจจุบัน ($)</th>
+                            <th class="py-3 px-4 text-center">ต้นทุนรวม ($)</th>
+                            <th class="py-3 px-4 text-center">มูลค่าตลาด ($)</th>
+                            <th class="py-3 px-4 text-center">กำไรสะสม ($)</th>
+                            <th class="py-3 px-4 text-center">กำไรวันนี้ ($)</th>
+                            <th class="py-3 px-4 text-center">จัดการ</th>
+                        </tr>
+                    `;
+                }
+            }
+
             const tableBody = document.getElementById('fundTableBody');
             if (tableBody) tableBody.innerHTML = '';
 
@@ -342,7 +363,7 @@ function renderAll() {
             const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
             const USD_THB_RATE = 35.25;
 
-            // 1. เพิ่มการ์ด "มูลค่าพอร์ตรวม" ข้างยอดต้นทุนรวม
+            // การ์ดสรุปยอด
             const summaryContainer = document.getElementById('totalCostDisplay')?.closest('.grid');
             if (summaryContainer) {
                 summaryContainer.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6";
@@ -378,23 +399,30 @@ function renderAll() {
                 `;
             }
 
-            // 2. ปรับเปลี่ยนข้อความหัวข้อตามสั่ง
-            document.querySelectorAll('th, h2, h3, div, p').forEach(el => {
-                if (el.children.length === 0) {
-                    const txt = el.innerText.trim();
-                    if (txt.includes('สัดส่วนเป้าหมาย')) el.innerText = 'สัดส่วนเป้าหมาย';
-                    if (txt.includes('รายการหุ้นในพอร์ต')) el.innerText = 'รายการหุ้นในพอร์ต';
-                    if (txt === 'กำไร/ขาดทุนสะสม ($)') el.innerText = 'กำไรสะสม ($)';
-                    if (txt === 'กำไร/ขาดทุนวันนี้ ($)') el.innerText = 'กำไรวันนี้ ($)';
-                }
-            });
-
             renderAllocation(totalVal);
         }
 
         function renderAllocation(totalVal) {
-            const allocBody = document.getElementById('allocTableBody');
+            const allocBody = document.getElementById('allocTableBody') || document.getElementById('rebalanceTableBody');
             if (!allocBody) return;
+
+            // จัดการ Header ตารางสัดส่วนเป้าหมายให้ตรงกับข้อมูล (text-center)
+            const allocTable = allocBody.closest('table');
+            if (allocTable) {
+                const thead = allocTable.querySelector('thead');
+                if (thead) {
+                    thead.innerHTML = `
+                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="py-3 px-4 text-center">TICKER</th>
+                            <th class="py-3 px-4 text-center">ราคาปัจจุบัน ($)</th>
+                            <th class="py-3 px-4 text-center">สัดส่วนปัจจุบัน (%)</th>
+                            <th class="py-3 px-4 text-center">สัดส่วนเป้าหมาย (%)</th>
+                            <th class="py-3 px-4 text-center">ส่วนต่าง (%)</th>
+                        </tr>
+                    `;
+                }
+            }
+
             allocBody.innerHTML = '';
 
             funds.forEach(f => {
@@ -417,6 +445,7 @@ function renderAll() {
                 allocBody.appendChild(tr);
             });
         }
+        
         /* --- Gemini API Keys and Modal Management --- */
         function openApiKeyModal() {
             document.getElementById('inputGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
