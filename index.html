@@ -118,14 +118,14 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- Card 1: มูลค่าพอร์ตรวม -->
     <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">มูลค่าพอร์ตรวม</p>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">มูลค่าพอร์ต</p>
         <h2 id="totalValDisplay" class="text-2xl font-extrabold text-emerald-400">$0.00</h2>
         <p id="totalValThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
     </div>
 
     <!-- Card 2: ยอดต้นทุนรวม -->
     <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ยอดต้นทุนรวม</p>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ต้นทุน</p>
         <h2 id="totalCostDisplay" class="text-2xl font-extrabold text-white">$0.00</h2>
         <p id="totalCostThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
     </div>
@@ -177,7 +177,7 @@
                         <th class="text-right">จำนวนหุ้น</th>
                         <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
                         <th class="text-right">ราคาปัจจุบัน ($)</th>
-                        <th class="text-right">ต้นทุนรวม ($)</th>
+                        <th class="text-right">ต้นทุน ($)</th>
                         <th class="text-right">มูลค่าตลาด ($)</th>
                         <th class="text-right">กำไร/ขาดทุนสะสม ($)</th>
                         <th class="text-right">กำไร/ขาดทุนวันนี้ ($)</th>
@@ -502,7 +502,7 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                             <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
                             <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
                             <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
-                            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนรวม ($) ${getSortIcon('cost')}</th>
+                            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
                             <th onclick="handleSort('val')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('val')}</th>
                             <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไร/ขาดทุนสะสม ($) ${getSortIcon('profit')}</th>
                             <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไร/ขาดทุนวันนี้ ($) ${getSortIcon('todayGain')}</th>
