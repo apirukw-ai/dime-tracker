@@ -281,15 +281,18 @@
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        async function loadData() {
+async function loadData() {
             try {
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
                 funds = (data && data.length > 0) ? data : defaultFunds;
-                renderAll();
             } catch (err) {
-                funds = defaultFunds;
-function renderAll() {
+                funds = (typeof defaultFunds !== 'undefined') ? defaultFunds : [];
+            }
+            renderAll();
+        }
+
+        function renderAll() {
             const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
             let totalVal = 0;
             let totalCost = 0;
@@ -442,33 +445,6 @@ function renderAll() {
                 `;
                 allocBody.appendChild(tr);
             });
-        }
-        
-        /* --- Gemini API Keys and Modal Management --- */
-        function openApiKeyModal() {
-            document.getElementById('inputGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
-            document.getElementById('apiKeyModal').classList.remove('hidden');
-        }
-        function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
-        function saveApiKey() {
-            const key = document.getElementById('inputGeminiKey').value.trim();
-            if (key) {
-                localStorage.setItem('gemini_api_key', key);
-                alert("บันทึก Gemini API Key เรียบร้อยแล้ว!");
-            } else {
-                localStorage.removeItem('gemini_api_key');
-            }
-            closeApiKeyModal();
-        }
-
-        function triggerScanSlip() {
-            const apiKey = localStorage.getItem('gemini_api_key');
-            if (!apiKey) {
-                alert("กรุณาใส่ Gemini API Key ก่อนใช้งานระบบสแกนด้วย AI");
-                openApiKeyModal();
-                return;
-            }
-            document.getElementById('slipFileInput').click();
         }
 
         // Helper to convert File to Base64
