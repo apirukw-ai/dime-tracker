@@ -560,12 +560,12 @@ function renderProfitBarChart(fundList) {
 document.addEventListener('DOMContentLoaded', () => {
     fetchUsdThbRate();
 
-    // เพิ่มระบบดึงราคาหุ้นอัตโนมัติทุกๆ 30 วินาที
+    // เพิ่มระบบดึงราคาหุ้นอัตโนมัติทุกๆ 60 วินาที
     setInterval(() => {
         if (typeof fetchLivePrices === 'function') {
             fetchLivePrices();
         }
-    }, 30000);
+    }, 60000);
 });
         
 function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
