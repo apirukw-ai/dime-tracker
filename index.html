@@ -559,19 +559,23 @@ function renderProfitBarChart(fundList) {
 // เรียกใช้ API อัตราแลกเปลี่ยนและตั้งเวลา Auto-update แบบฉลาด
 document.addEventListener('DOMContentLoaded', () => {
     fetchUsdThbRate();
-    if (typeof fetchLivePrices === 'function') fetchLivePrices(); // ดึงราคาทันทีที่เปิดหน้าเว็บ
+    if (typeof fetchLivePrices === 'function') fetchLivePrices(); // ดึงราคา 1 ครั้งทันทีที่เปิดหน้าเว็บ
 
-    // ตั้งเวลาตรวจเช็กทุกๆ 1 นาที (60,000 ms)
     setInterval(() => {
-        // 1. ถ้าผู้ใช้ไม่ได้เปิดดูหน้าเว็บนี้อยู่ (พับหน้าจอ/สลับแท็บ) -> ไม่ต้องดึงข้อมูล
+        // 1. ถ้าผู้ใช้ไม่ได้เปิดดูหน้าเว็บ (พับหน้าจอ/สลับแท็บ) -> หยุดดึง
         if (document.hidden) return;
 
-        // 2. เช็กวันเสาร์ (6) และวันอาทิตย์ (0) -> ตลาดปิด ไม่ต้องดึงข้อมูล
         const now = new Date();
         const day = now.getDay();
+        const hour = now.getHours();
+
+        // 2. วันเสาร์ (6) และวันอาทิตย์ (0) -> หยุดดึง
         if (day === 0 || day === 6) return;
 
-        // 3. ดึงราคาสดเมื่อเงื่อนไขผ่านครบถ้วน
+        // 3. ตลาดปิดช่วง 04:00 - 20:00 น. (เวลาไทย) -> หยุดดึง
+        if (hour >= 4 && hour < 20) return;
+
+        // 4. ดึงราคาสดเฉพาะช่วงตลาดเปิด (20:00 - 03:59 น.)
         if (typeof fetchLivePrices === 'function') {
             fetchLivePrices();
         }
