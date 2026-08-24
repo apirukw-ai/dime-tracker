@@ -358,37 +358,38 @@
         }
 
         async function fetchLivePrices() {
-            if (!funds || funds.length === 0) return;
+    if (!funds || funds.length === 0) return;
 
-            const tickers = funds.map(f => f.code).filter(Boolean).join(',');
-            if (!tickers) return;
+    const tickers = funds.map(f => f.code).filter(Boolean).join(',');
+    if (!tickers) return;
 
-            try {
-                const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tickers)}`;
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-                
-                const res = await fetch(proxyUrl);
-                const data = await res.json();
-                
-                const results = data?.quoteResponse?.result || [];
-                if (results && results.length > 0) {
-                    results.forEach(quote => {
-                        const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
-                        if (fund) {
-                            if (quote.regularMarketPrice) fund.currentNav = quote.regularMarketPrice;
-                            if (quote.regularMarketChange) {
-                                const units = parseFloat(fund.units) || 0;
-                                fund.todayGain = quote.regularMarketChange * units;
-                            }
-                            fund.justUpdated = true;
-                        }
-                    });
-                    renderAll(true);
+    try {
+        const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tickers)}`;
+        // เปลี่ยนมาใช้ Proxy ของ allorigins ป้องกันปัญหา corsproxy ล่ม
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+
+        const results = data?.quoteResponse?.result || [];
+        if (results && results.length > 0) {
+            results.forEach(quote => {
+                const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
+                if (fund) {
+                    if (quote.regularMarketPrice) fund.currentNav = quote.regularMarketPrice;
+                    if (quote.regularMarketChange) {
+                        const units = parseFloat(fund.units) || 0;
+                        fund.todayGain = quote.regularMarketChange * units;
+                    }
+                    fund.justUpdated = true;
                 }
-            } catch (err) {
-                console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
-            }
+            });
+            renderAll(true);
         }
+    } catch (err) {
+        console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
+    }
+}
 
         // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที
         if (!window.livePriceInterval) {
@@ -884,16 +885,19 @@ function closeApiKeyModal() {
 
 // ฟังก์ชันบันทึก Key ลงเครื่อง
 function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    if (input && input.value.trim() !== '') {
-        const key = input.value.trim();
-        localStorage.setItem('GEMINI_API_KEY', key);
-        localStorage.setItem('gemini_api_key', key);
-        alert('บันทึก API Key เรียบร้อยแล้ว!');
-        closeApiKeyModal();
-    } else {
+    // ดึงค่าเจาะจงจากช่อง Input ใน Modal ป้องกันปัญหาอ่านค่าว่าง
+    const modalInput = document.querySelector('#apiKeyModal input') || document.getElementById('apiKeyInput');
+    const key = modalInput ? modalInput.value.trim() : '';
+
+    if (!key) {
         alert('กรุณากรอก API Key ก่อนบันทึกครับ');
+        return;
     }
+
+    localStorage.setItem('GEMINI_API_KEY', key);
+    localStorage.setItem('gemini_api_key', key);
+    alert('บันทึก API Key เรียบร้อยแล้ว!');
+    closeApiKeyModal();
 }
         
 // 1. ฟังก์ชันเมื่อกดปุ่มสแกนภาพด้วย AI
