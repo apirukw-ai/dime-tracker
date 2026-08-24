@@ -556,12 +556,22 @@ function renderProfitBarChart(fundList) {
         }]
     });
 }
-// เรียกใช้ API อัตราแลกเปลี่ยนและตั้งเวลา Auto-update เมื่อโหลดหน้าเว็บ
+// เรียกใช้ API อัตราแลกเปลี่ยนและตั้งเวลา Auto-update แบบฉลาด
 document.addEventListener('DOMContentLoaded', () => {
     fetchUsdThbRate();
+    if (typeof fetchLivePrices === 'function') fetchLivePrices(); // ดึงราคาทันทีที่เปิดหน้าเว็บ
 
-    // เพิ่มระบบดึงราคาหุ้นอัตโนมัติทุกๆ 60 วินาที
+    // ตั้งเวลาตรวจเช็กทุกๆ 1 นาที (60,000 ms)
     setInterval(() => {
+        // 1. ถ้าผู้ใช้ไม่ได้เปิดดูหน้าเว็บนี้อยู่ (พับหน้าจอ/สลับแท็บ) -> ไม่ต้องดึงข้อมูล
+        if (document.hidden) return;
+
+        // 2. เช็กวันเสาร์ (6) และวันอาทิตย์ (0) -> ตลาดปิด ไม่ต้องดึงข้อมูล
+        const now = new Date();
+        const day = now.getDay();
+        if (day === 0 || day === 6) return;
+
+        // 3. ดึงราคาสดเมื่อเงื่อนไขผ่านครบถ้วน
         if (typeof fetchLivePrices === 'function') {
             fetchLivePrices();
         }
