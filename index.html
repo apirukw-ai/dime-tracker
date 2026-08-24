@@ -172,7 +172,7 @@
     <!-- Bar Chart: เปรียบเทียบกำไรรายตัว -->
     <div class="card-slate p-5">
         <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <span>📊</span> เปรียบเทียบกำไร รายหุ้น ($)
+            <span>📊</span> เปรียบเทียบกำไรรายหุ้น ($)
         </h3>
         <div class="h-60 relative">
             <canvas id="profitBarChart"></canvas>
@@ -278,7 +278,7 @@
                         <input type="number" step="0.0001" id="inputCurrentNav" placeholder="0.00" class="w-full bg-slate-950 border border-emerald-500/40 rounded-xl p-2.5 text-dime font-bold mt-1 focus:border-emerald-400 outline-none">
                     </div>
                     <div>
-                        <label class="text-slate-300 font-semibold">กำไร/ขาดทุนวันนี้ ($)</label>
+                        <label class="text-slate-300 font-semibold">กำไรวันนี้ ($)</label>
                         <input type="number" step="0.01" id="inputTodayGain" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
                     </div>
                 </div>
@@ -500,7 +500,7 @@ function renderProfitBarChart(fundList) {
         data: {
             labels: labels,
             datasets: [{ 
-                label: 'กำไร/ขาดทุน ($)', 
+                label: 'กำไร ($)', 
                 data: profits, 
                 backgroundColor: colors, 
                 borderRadius: 6 
@@ -727,8 +727,8 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
                             <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
                             <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
                             <th onclick="handleSort('val')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('val')}</th>
-                            <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไร/ขาดทุนสะสม ($) ${getSortIcon('profit')}</th>
-                            <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไร/ขาดทุนวันนี้ ($) ${getSortIcon('todayGain')}</th>
+                            <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
+                            <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
                             <th class="py-3 px-4 text-center">จัดการ</th>
                         </tr>
                     `;
