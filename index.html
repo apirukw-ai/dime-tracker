@@ -1109,7 +1109,7 @@ async function saveToFirebase() {
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
         <h3 class="text-lg font-bold text-white mb-2">🔑 ตั้งค่า Gemini API Key</h3>
         <p class="text-xs text-slate-400 mb-4">หากยังไม่มี สามารถขอ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-emerald-400 underline">Google AI Studio</a></p>
-        <input type="password" id="apiKeyInput" placeholder="วาง API Key ตรงนี้ (เช่น AIzaSy...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white mb-4 focus:outline-none focus:border-emerald-500 font-mono">
+        <input type="text" id="apiKeyInput" autocomplete="off" placeholder="วาง API Key ตรงนี้ (ขึ้นต้นด้วย AQ... หรือ AIzaSy...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white mb-4 focus:outline-none focus:border-emerald-500 font-mono">
         <div class="flex justify-end gap-2">
             <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">ยกเลิก</button>
             <button onclick="saveApiKey()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs transition">บันทึก</button>
