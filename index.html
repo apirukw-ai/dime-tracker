@@ -609,7 +609,7 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
         profitEl.className = `text-2xl font-extrabold ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
     }
     if (document.getElementById('totalProfitSub')) {
-        document.getElementById('totalProfitSub').innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุนรวม`;
+        document.getElementById('totalProfitSub').innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% เทียบกับต้นทุน`;
     }
 
     // 4. กำไร/ขาดทุนวันนี้
@@ -619,7 +619,7 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
         dailyEl.className = `text-2xl font-extrabold ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
     }
     if (document.getElementById('dailyProfitSub')) {
-        document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% จากการเปลี่ยนแปลงวันนี้`;
+        document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้`;
     }
 }
         
