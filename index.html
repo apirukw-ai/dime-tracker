@@ -556,9 +556,16 @@ function renderProfitBarChart(fundList) {
         }]
     });
 }
-// เรียกใช้ API อัตราแลกเปลี่ยนเมื่อโหลดหน้าเว็บ
+// เรียกใช้ API อัตราแลกเปลี่ยนและตั้งเวลา Auto-update เมื่อโหลดหน้าเว็บ
 document.addEventListener('DOMContentLoaded', () => {
     fetchUsdThbRate();
+
+    // เพิ่มระบบดึงราคาหุ้นอัตโนมัติทุกๆ 30 วินาที
+    setInterval(() => {
+        if (typeof fetchLivePrices === 'function') {
+            fetchLivePrices();
+        }
+    }, 30000);
 });
         
 function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
