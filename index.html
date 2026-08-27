@@ -600,6 +600,23 @@ function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, da
     }
     if (document.getElementById('totalValThbDisplay')) {
         document.getElementById('totalValThbDisplay').innerText = `฿${(totalVal * rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
+    const portfolioValueTHB = totalVal * rate;
+
+fetch(
+  'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json',
+  {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      value: portfolioValueTHB,
+      updatedAt: new Date().toISOString()
+    })
+  }
+)
+.then(() => console.log('✅ DIME synced:', portfolioValueTHB))
+.catch(err => console.error('❌ DIME sync failed:', err));
     }
 
     // 3. กำไร/ขาดทุนสะสม
