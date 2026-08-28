@@ -362,15 +362,46 @@
         }
 
         async function fetchLivePrices() {
-    if (!funds || funds.length === 0) return;
 
-    const tickers = funds.map(f => f.code).filter(Boolean).join(',');
-    if (!tickers) return;
+  const API_KEY = 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
+
+  for (const fund of funds) {
 
     try {
-        const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tickers)}`;
-        // เปลี่ยนมาใช้ Proxy ของ allorigins ป้องกันปัญหา corsproxy ล่ม
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+      const res = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${fund.code}&token=${API_KEY}`
+      );
+
+      const quote = await res.json();
+
+      if (quote.c) {
+
+        fund.currentNav = quote.c;
+
+        console.log(
+          'Updated:',
+          fund.code,
+          quote.c
+        );
+
+      }
+
+    } catch (err) {
+
+      console.warn(
+        'Finnhub Error:',
+        fund.code,
+        err
+      );
+
+    }
+
+  }
+
+  renderAll(true);
+
+}
 
         console.log('Proxy URL:', proxyUrl);
 console.log('Target URL:', targetUrl);
