@@ -483,7 +483,7 @@
             });
         }
 
-function renderAll(isLiveUpdate = false) {
+        function renderAll(isLiveUpdate = false) {
             let totalVal = 0;
             let totalCost = 0;
             let totalDailyGain = 0;
@@ -541,25 +541,35 @@ function renderAll(isLiveUpdate = false) {
             document.getElementById('totalValDisplay').innerText = `$${formatNum(totalVal)}`;
             document.getElementById('totalValThbDisplay').innerText = `฿${formatNum(totalVal * USD_THB_RATE)} THB`;
 
-            // === เพิ่มส่วน Sync มูลค่าพอร์ตภาษาบาทไปยัง Firebase ตามต้องการ ===
             const portfolioValueTHB = totalVal * USD_THB_RATE;
 
             fetch(
-              'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json',
-              {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  value: portfolioValueTHB,
-                  updatedAt: new Date().toISOString()
-                })
-              }
+                'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json',
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        value: portfolioValueTHB,
+                        updatedAt: new Date().toISOString()
+                    })
+                }
             )
-            .then(() => console.log('✅ DIME synced:', portfolioValueTHB))
-            .catch(err => console.error('❌ DIME sync failed:', err));
-            // ==========================================================
+            .then(res => {
+                console.log(
+                    '✅ DIME synced:',
+                    portfolioValueTHB,
+                    'status:',
+                    res.status
+                );
+            })
+            .catch(err => {
+                console.error(
+                    '❌ DIME sync failed:',
+                    err
+                );
+            });
 
             document.getElementById('totalCostDisplay').innerText = `$${formatNum(totalCost)}`;
             document.getElementById('totalCostThbDisplay').innerText = `฿${formatNum(totalCost * USD_THB_RATE)} THB`;
