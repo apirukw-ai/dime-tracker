@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIME! Investment Portfolio Tracker</title>
-    <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,7 +11,6 @@
     <meta name="apple-mobile-web-app-title" content="DIME Tracker">
     <link rel="apple-touch-icon" href="https://dime.co.th/favicon.ico">
     
-    <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -71,14 +69,12 @@
         tr:hover td { background-color: rgba(51, 65, 85, 0.4); }
     </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="py-6 px-3 sm:px-8">
 
     <div class="max-w-7xl mx-auto space-y-5">
 
-        <!-- Header Section -->
         <header class="flex flex-col md:flex-row justify-between items-center gap-4 card-header-glow p-4 sm:p-5">
             <div class="flex items-center gap-3.5">
                 <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-300 flex items-center justify-center text-slate-950 font-black text-2xl shadow-md shadow-emerald-500/20">
@@ -88,25 +84,23 @@
                     <h1 class="text-xl font-extrabold text-white tracking-wide flex items-center gap-2">
                         DIME! Investment Tracker
                     </h1>
-                    <p class="text-xs text-slate-400 font-medium">พอร์ตการลงทุนจริง (AI Gemini Scanner)</p>
+                    <p class="text-xs text-slate-400 font-medium">พอร์ตการลงทุนจริง (Finnhub API)</p>
                 </div>
             </div>
 
-            <!-- Sync Status Center -->
             <div class="bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-700 text-xs flex items-center gap-3">
                 <span class="text-slate-300 flex items-center gap-1.5 font-medium">
                     <i class="fa-solid fa-cloud text-dime"></i> Sync ID: 
                     <input type="text" id="syncIdInput" value="my-real-dime-port" onchange="changeSyncId()" class="bg-slate-900 border border-slate-700 text-dime font-mono font-bold px-2 py-0.5 rounded outline-none w-32">
                 </span>
                 <span class="text-emerald-400 flex items-center gap-1.5 font-bold border-l border-slate-700 pl-3">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Live Cloud
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Finnhub Live
                 </span>
             </div>
 
-            <!-- Action Buttons -->
             <div class="flex flex-wrap gap-2">
-                <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า Gemini API Key">
-                    <i class="fa-solid fa-key text-yellow-400"></i> API Key
+                <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า API Key">
+                    <i class="fa-solid fa-key text-yellow-400"></i> API Keys
                 </button>
                 <button onclick="triggerScanSlip()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm text-dime border-emerald-500/30">
                     <i class="fa-solid fa-wand-magic-sparkles text-dime"></i> สแกนภาพด้วย AI
@@ -117,70 +111,56 @@
             </div>
         </header>
 
-        <!-- Top Summary Cards (4 ช่อง) -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <!-- Card 1: มูลค่าพอร์ตรวม -->
-    <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">มูลค่าพอร์ต</p>
-        <h2 id="totalValDisplay" class="text-2xl font-extrabold text-emerald-400">$0.00</h2>
-        <p id="totalValThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
-    </div>
-
-    <!-- Card 2: ยอดต้นทุนรวม -->
-    <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ต้นทุน</p>
-        <h2 id="totalCostDisplay" class="text-2xl font-extrabold text-white">$0.00</h2>
-        <p id="totalCostThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
-    </div>
-
-    <!-- Card 3: กำไรสะสม -->
-    <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไรสะสม (Total Gain)</p>
-        <h2 id="totalProfitDisplay" class="text-2xl font-extrabold">$0.00</h2>
-        <p id="totalProfitSub" class="text-xs text-slate-400 mt-1 font-medium">+0.00% จากต้นทุน</p>
-    </div>
-
-    <!-- Card 4: กำไรวันนี้ -->
-    <div class="card-slate p-5">
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไรวันนี้ (Today's Gain)</p>
-        <h2 id="dailyProfitDisplay" class="text-2xl font-extrabold">$0.00</h2>
-        <p id="dailyProfitSub" class="text-xs text-slate-400 mt-1 font-medium">+0.00% จากการเปลี่ยนแปลงวันนี้</p>
-    </div>
-</div>
-
-<!-- แถบแสดงอัตราแลกเปลี่ยน Real-time -->
-<div class="flex justify-between items-center mb-4 px-1">
-    <div class="flex items-center text-xs text-slate-400 gap-2 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/60 shadow-sm">
-        <span>💱 อัตราแลกเปลี่ยนปัจจุบัน:</span>
-        <span id="usdThbBadge" class="font-bold text-emerald-400 font-mono">1 USD = --.-- THB</span>
-        <span class="text-[10px] text-slate-500">(Dynamic API)</span>
-    </div>
-</div>
-
-<!-- โซนแสดงกราฟ 2 รูปแบบ (Grid 2 คอลัมน์) -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- Line Chart: เทรนด์พอร์ตสะสม -->
-    <div class="card-slate p-5">
-        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <span>📈</span> แนวโน้มมูลค่าพอร์ตสะสม (Portfolio History)
-        </h3>
-        <div class="h-60 relative">
-            <canvas id="historyChart"></canvas>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">มูลค่าพอร์ต</p>
+                <h2 id="totalValDisplay" class="text-2xl font-extrabold text-emerald-400">$0.00</h2>
+                <p id="totalValThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
+            </div>
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ต้นทุน</p>
+                <h2 id="totalCostDisplay" class="text-2xl font-extrabold text-white">$0.00</h2>
+                <p id="totalCostThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
+            </div>
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไรสะสม (Total Gain)</p>
+                <h2 id="totalProfitDisplay" class="text-2xl font-extrabold">$0.00</h2>
+                <p id="totalProfitSub" class="text-xs text-slate-400 mt-1 font-medium">+0.00% จากต้นทุน</p>
+            </div>
+            <div class="card-slate p-5">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">กำไรวันนี้ (Today's Gain)</p>
+                <h2 id="dailyProfitDisplay" class="text-2xl font-extrabold">$0.00</h2>
+                <p id="dailyProfitSub" class="text-xs text-slate-400 mt-1 font-medium">+0.00% จากการเปลี่ยนแปลงวันนี้</p>
+            </div>
         </div>
-    </div>
 
-    <!-- Bar Chart: เปรียบเทียบกำไรรายตัว -->
-    <div class="card-slate p-5">
-        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <span>📊</span> เปรียบเทียบกำไรรายหุ้น ($)
-        </h3>
-        <div class="h-60 relative">
-            <canvas id="profitBarChart"></canvas>
+        <div class="flex justify-between items-center mb-4 px-1">
+            <div class="flex items-center text-xs text-slate-400 gap-2 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/60 shadow-sm">
+                <span>💱 อัตราแลกเปลี่ยนปัจจุบัน:</span>
+                <span id="usdThbBadge" class="font-bold text-emerald-400 font-mono">1 USD = --.-- THB</span>
+                <span class="text-[10px] text-slate-500">(Dynamic API)</span>
+            </div>
         </div>
-    </div>
-</div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="card-slate p-5">
+                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <span>📈</span> แนวโน้มมูลค่าพอร์ตสะสม (Portfolio History)
+                </h3>
+                <div class="h-60 relative">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+            <div class="card-slate p-5">
+                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <span>📊</span> เปรียบเทียบกำไรรายหุ้น ($)
+                </h3>
+                <div class="h-60 relative">
+                    <canvas id="profitBarChart"></canvas>
+                </div>
+            </div>
+        </div>
         
-        <!-- Target Allocation Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <h3 class="text-xs font-bold text-dime mb-3 flex items-center gap-2 uppercase tracking-wider">
                 <i class="fa-solid fa-sliders"></i> สัดส่วนเป้าหมาย
@@ -199,7 +179,6 @@
             </table>
         </div>
 
-        <!-- Main Investment Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
@@ -226,33 +205,34 @@
 
     </div>
 
-    <!-- Hidden Input for Scan Slip Upload -->
     <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="handleSlipUploadGemini(event)">
 
-    <!-- Gemini Loader Overlay -->
     <div id="aiLoader" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
         <div class="w-14 h-14 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4"></div>
         <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-brain text-dime"></i> Google Gemini AI กำลังวิเคราะห์รูปภาพ...</h3>
         <p class="text-xs text-slate-400 mt-1.5">กำลังถอดรหัสข้อมูล Ticker, จำนวนหุ้น, ราคา และกำไร</p>
     </div>
 
-    <!-- API Key Settings Modal -->
     <div id="apiKeyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
-        <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl">
-            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-key text-yellow-400"></i> ตั้งค่า Gemini API Key (ใช้งานฟรี)</h3>
-            <p class="text-xs text-slate-400 mb-4">รับ Key ฟรีจาก <a href="https://aistudio.google.com/" target="_blank" class="text-dime underline">aistudio.google.com</a> เพื่อใช้ AI สแกนอ่านสลิปและรูปภาพพอร์ตได้เป๊ะ 100%</p>
+        <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl space-y-4">
+            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-key text-yellow-400"></i> ตั้งค่า API Keys</h3>
             <div>
-                <label class="text-xs text-slate-300 font-semibold">Gemini API Key</label>
+                <label class="text-xs text-slate-300 font-semibold">Gemini API Key (สำหรับสแกนสลิป)</label>
                 <input type="password" id="inputGeminiKey" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none text-xs font-mono">
+                <p class="text-[10px] text-slate-400 mt-1">รับคีย์ฟรีที่ <a href="https://aistudio.google.com/" target="_blank" class="text-dime underline">Google AI Studio</a></p>
+            </div>
+            <div>
+                <label class="text-xs text-slate-300 font-semibold">Finnhub API Key (สำหรับดึงราคาหุ้น Real-time)</label>
+                <input type="password" id="inputFinnhubKey" placeholder="c..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none text-xs font-mono">
+                <p class="text-[10px] text-slate-400 mt-1">รับคีย์ฟรีที่ <a href="https://finnhub.io/" target="_blank" class="text-dime underline">Finnhub.io</a></p>
             </div>
             <div class="flex justify-end gap-2 mt-5">
                 <button onclick="closeApiKeyModal()" class="btn-slate px-4 py-2 rounded-xl text-xs">ยกเลิก</button>
-                <button onclick="saveApiKey()" class="btn-dime px-5 py-2 rounded-xl text-xs">บันทึก Key</button>
+                <button onclick="saveApiKey()" class="btn-dime px-5 py-2 rounded-xl text-xs">บันทึก Keys</button>
             </div>
         </div>
     </div>
 
-    <!-- Add/Edit Modal -->
     <div id="fundModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
         <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl">
             <h3 id="modalTitle" class="text-base font-bold text-white mb-4">เพิ่ม/แก้ไข รายการลงทุน</h3>
@@ -302,18 +282,18 @@
             return `https://my-dime-port-default-rtdb.asia-southeast1.firebasedatabase.app/dime_ports/${currentSyncId}.json`;
         }
 
-        const USD_THB_RATE = 35.25;
+        let USD_THB_RATE = 35.25;
 
         const defaultFunds = [
-            { id: '1', code: 'NVDA', units: 21.11, avgNav: 46.39, currentNav: 214.72, todayGain: -44.96, todayGainPct: -0.98, targetPct: 15.0 },
-            { id: '2', code: 'AVGO', units: 11.25, avgNav: 102.50, currentNav: 368.45, todayGain: 49.74, todayGainPct: 1.21, targetPct: 15.0 },
-            { id: '3', code: 'JPM', units: 8.68, avgNav: 257.70, currentNav: 351.58, todayGain: 0.26, todayGainPct: 0.01, targetPct: 15.0 },
-            { id: '4', code: 'GOOGL', units: 7.85, avgNav: 140.49, currentNav: 344.82, todayGain: 32.59, todayGainPct: 1.22, targetPct: 12.0 },
-            { id: '5', code: 'WMT', units: 21.50, avgNav: 104.19, currentNav: 103.70, todayGain: -3.01, todayGainPct: -0.13, targetPct: 12.0 },
-            { id: '6', code: 'MSFT', units: 4.11, avgNav: 350.73, currentNav: 483.24, todayGain: 8.60, todayGainPct: 0.43, targetPct: 10.0 },
-            { id: '7', code: 'AMZN', units: 6.83, avgNav: 128.44, currentNav: 258.63, todayGain: -10.11, todayGainPct: -0.57, targetPct: 8.0 },
-            { id: '8', code: 'ABBV', units: 6.58, avgNav: 171.57, currentNav: 264.96, todayGain: 20.58, todayGainPct: 1.20, targetPct: 8.0 },
-            { id: '9', code: 'NEE', units: 12.76, avgNav: 77.11, currentNav: 83.65, todayGain: -17.61, todayGainPct: -1.62, targetPct: 5.0 }
+            { id: '1', code: 'NVDA', units: 21.11, avgNav: 46.39, currentNav: 214.72, todayGain: -44.96, targetPct: 15.0 },
+            { id: '2', code: 'AVGO', units: 11.25, avgNav: 102.50, currentNav: 368.45, todayGain: 49.74, targetPct: 15.0 },
+            { id: '3', code: 'JPM', units: 8.68, avgNav: 257.70, currentNav: 351.58, todayGain: 0.26, targetPct: 15.0 },
+            { id: '4', code: 'GOOGL', units: 7.85, avgNav: 140.49, currentNav: 344.82, todayGain: 32.59, targetPct: 12.0 },
+            { id: '5', code: 'WMT', units: 21.50, avgNav: 104.19, currentNav: 103.70, todayGain: -3.01, targetPct: 12.0 },
+            { id: '6', code: 'MSFT', units: 4.11, avgNav: 350.73, currentNav: 483.24, todayGain: 8.60, targetPct: 10.0 },
+            { id: '7', code: 'AMZN', units: 6.83, avgNav: 128.44, currentNav: 258.63, todayGain: -10.11, targetPct: 8.0 },
+            { id: '8', code: 'ABBV', units: 6.58, avgNav: 171.57, currentNav: 264.96, todayGain: 20.58, targetPct: 8.0 },
+            { id: '9', code: 'NEE', units: 12.76, avgNav: 77.11, currentNav: 83.65, todayGain: -17.61, targetPct: 5.0 }
         ];
 
         let funds = [];
@@ -328,13 +308,13 @@
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-// Style สำหรับ Real-time Flash Effect
+        // Style สำหรับ Flash Effect ตอนราคาอัปเดต
         if (!document.getElementById('live-flash-style')) {
             const style = document.createElement('style');
             style.id = 'live-flash-style';
             style.innerHTML = `
                 @keyframes priceGlow {
-                    0% { background-color: rgba(52, 211, 153, 0.4); text-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+                    0% { background-color: rgba(52, 211, 153, 0.4); }
                     100% { background-color: transparent; }
                 }
                 .flash-updated {
@@ -349,856 +329,203 @@
             try {
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
-                console.log(
-  'Yahoo error full:',
-  JSON.stringify(data?.finance?.error, null, 2)
-);
-                funds = (data && data.length > 0) ? data : (typeof defaultFunds !== 'undefined' ? defaultFunds : []);
+                funds = (data && data.length > 0) ? data : defaultFunds;
             } catch (err) {
-                funds = (typeof defaultFunds !== 'undefined') ? defaultFunds : [];
+                funds = defaultFunds;
             }
             renderAll();
             fetchLivePrices();
         }
 
+        // --- ฟังก์ชันดึงราคา Real-time จาก Finnhub API แทน Yahoo Finance ---
         async function fetchLivePrices() {
+            const finnhubKey = localStorage.getItem('da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0') || '';
+            if (!finnhubKey) {
+                console.warn('ยังไม่ได้ตั้งค่า Finnhub API Key กรุณาตั้งค่าที่ปุ่ม API Keys ด้านบน');
+                return;
+            }
 
-  const API_KEY = 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
-
-  for (const fund of funds) {
-
-    try {
-
-      const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=${fund.code}&token=${API_KEY}`
-      );
-
-      const quote = await res.json();
-
-      if (quote.c) {
-
-        fund.currentNav = quote.c;
-
-        console.log(
-          'Updated:',
-          fund.code,
-          quote.c
-        );
-
-      }
-
-    } catch (err) {
-
-      console.warn(
-        'Finnhub Error:',
-        fund.code,
-        err
-      );
-
-    }
-
-  }
-
-  renderAll(true);
-
-}
-
-        console.log('Proxy URL:', proxyUrl);
-console.log('Target URL:', targetUrl);
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-
-        console.log('Yahoo error full:', data?.finance?.error);
-        
-        const results = data?.quoteResponse?.result || [];
-        if (results && results.length > 0) {
-            results.forEach(quote => {
-                const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
-                if (fund) {
-                    if (quote.regularMarketPrice) {
-    fund.currentNav = quote.regularMarketPrice;
-}
-                   
-                    if (quote.regularMarketChange) {
-                        const units = parseFloat(fund.units) || 0;
-                        fund.todayGain = quote.regularMarketChange * units;
+            for (const fund of funds) {
+                if (!fund.code) continue;
+                try {
+                    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fund.code.trim().toUpperCase())}&token=${finnhubKey}`);
+                    const quote = await res.json();
+                    
+                    // Finnhub response: c = current price, d = change, dp = percent change
+                    if (quote && quote.c !== undefined && quote.c !== null && quote.c !== 0) {
+                        fund.currentNav = quote.c;
+                        if (quote.d !== undefined && quote.d !== null) {
+                            const units = parseFloat(fund.units) || 0;
+                            fund.todayGain = quote.d * units;
+                        }
+                        fund.justUpdated = true;
                     }
-                    fund.justUpdated = true;
+                } catch (err) {
+                    console.warn(` Finnhub Error สำหรับ ${fund.code}:`, err);
                 }
-            });
+            }
             renderAll(true);
         }
-    } catch (err) {
-        console.warn('ไม่สามารถดึงราคา Real-time ได้:', err);
-    }
-}
 
         // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที
         if (!window.livePriceInterval) {
             window.livePriceInterval = setInterval(fetchLivePrices, 60000);
         }
 
-let historyChartInstance = null;
-let profitBarChartInstance = null;
+        let historyChartInstance = null;
+        let profitBarChartInstance = null;
 
-// 1. ดึงอัตราแลกเปลี่ยน Real-time จาก API ฟรี
-async function fetchUsdThbRate() {
-    try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
-        const data = await res.json();
-        if (data && data.rates && data.rates.THB) {
-            const rate = data.rates.THB;
-            window.USD_THB_RATE = rate;
-            window.usdThbRate = rate;
-            const badge = document.getElementById('usdThbBadge');
-            if (badge) badge.innerText = `1 USD = ${rate.toFixed(2)} THB`;
-        }
-    } catch (e) {
-        console.error("Error fetching USD/THB rate:", e);
-        window.USD_THB_RATE = window.USD_THB_RATE || 35.25;
-    }
-}
-
-// 2. ระบบบันทึกประวัติพอร์ตอัตโนมัติ (Portfolio History Log)
-function logPortfolioHistory(totalVal, totalCost) {
-    if (!totalVal || totalVal <= 0) return;
-    const today = new Date().toISOString().split('T')[0];
-    let history = JSON.parse(localStorage.getItem('PORTFOLIO_HISTORY') || '[]');
-    
-    const existingIndex = history.findIndex(item => item.date === today);
-    if (existingIndex >= 0) {
-        history[existingIndex].val = totalVal;
-        history[existingIndex].cost = totalCost;
-    } else {
-        history.push({ date: today, val: totalVal, cost: totalCost });
-    }
-
-    if (history.length > 30) history = history.slice(-30); // บันทึกย้อนหลังสูงสุด 30 วัน
-    localStorage.setItem('PORTFOLIO_HISTORY', JSON.stringify(history));
-    renderHistoryChart(history);
-}
-
-// 3. วาดกราฟเส้น Line Chart (History Trend)
-function renderHistoryChart(historyData) {
-    const ctx = document.getElementById('historyChart')?.getContext('2d');
-    if (!ctx) return;
-
-    const labels = historyData.map(h => h.date);
-    const values = historyData.map(h => h.val);
-    const costs = historyData.map(h => h.cost);
-
-    if (historyChartInstance) historyChartInstance.destroy();
-
-    historyChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: 'มูลค่าพอร์ต ($)', data: values, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 },
-                { label: 'ต้นทุนรวม ($)', data: costs, borderColor: '#64748b', borderDash: [4, 4], fill: false, tension: 0.3 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
-            scales: {
-                x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        // ดึงอัตราแลกเปลี่ยน USD/THB Real-time
+        async function fetchUsdThbRate() {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+                if (data && data.rates && data.rates.THB) {
+                    USD_THB_RATE = data.rates.THB;
+                    const badge = document.getElementById('usdThbBadge');
+                    if (badge) badge.innerText = `1 USD = ${USD_THB_RATE.toFixed(2)} THB`;
+                }
+            } catch (e) {
+                console.error("Error fetching USD/THB rate:", e);
             }
         }
-    });
-}
 
-// 4. วาดกราฟแท่ง Bar Chart (Profit Comparison + % Label บนยอดกราฟ)
-function renderProfitBarChart(fundList) {
-    const ctx = document.getElementById('profitBarChart')?.getContext('2d');
-    if (!ctx || !fundList || fundList.length === 0) return;
+        function logPortfolioHistory(totalVal, totalCost) {
+            if (!totalVal || totalVal <= 0) return;
+            const today = new Date().toISOString().split('T')[0];
+            let history = JSON.parse(localStorage.getItem('PORTFOLIO_HISTORY') || '[]');
+            
+            const existingIndex = history.findIndex(item => item.date === today);
+            if (existingIndex >= 0) {
+                history[existingIndex].val = totalVal;
+                history[existingIndex].cost = totalCost;
+            } else {
+                history.push({ date: today, val: totalVal, cost: totalCost });
+            }
 
-    const labels = [];
-    const profits = [];
-    const profitPcts = [];
-    const colors = [];
+            if (history.length > 30) history = history.slice(-30);
+            localStorage.setItem('PORTFOLIO_HISTORY', JSON.stringify(history));
+            renderHistoryChart(history);
+        }
 
-    fundList.forEach(f => {
-        const units = parseFloat(f.units) || 0;
-        const avg = parseFloat(f.avgNav) || 0;
-        const cur = parseFloat(f.currentNav) || avg;
-        
-        const cost = units * avg;
-        const profit = (units * cur) - cost;
-        const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
+        function renderHistoryChart(historyData) {
+            const ctx = document.getElementById('historyChart')?.getContext('2d');
+            if (!ctx) return;
 
-        labels.push(f.code || '-');
-        profits.push(profit);
-        profitPcts.push(profitPct);
-        colors.push(profit >= 0 ? '#10b981' : '#f43f5e');
-    });
+            const labels = historyData.map(h => h.date);
+            const values = historyData.map(h => h.val);
+            const costs = historyData.map(h => h.cost);
 
-    if (profitBarChartInstance) profitBarChartInstance.destroy();
+            if (historyChartInstance) historyChartInstance.destroy();
 
-    profitBarChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{ 
-                label: 'กำไร ($)', 
-                data: profits, 
-                backgroundColor: colors, 
-                borderRadius: 6 
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-                padding: { top: 25, bottom: 25 } // เพิ่มเว้นระยะบน-ล่าง ไม่ให้ % ตกขอบ
-            },
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const idx = context.dataIndex;
-                            const val = context.raw;
-                            const pct = profitPcts[idx];
-                            return ` กำไร: $${val.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
-                        }
+            historyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'มูลค่าพอร์ต ($)', data: values, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'ต้นทุนรวม ($)', data: costs, borderColor: '#64748b', borderDash: [4, 4], fill: false, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
                 }
-            },
-            scales: {
-                x: { ticks: { color: '#64748b' }, grid: { display: false } },
-                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-            }
-        },
-        plugins: [{
-            id: 'customBarLabels',
-            afterDatasetsDraw(chart) {
-                const { ctx } = chart;
-                chart.data.datasets.forEach((dataset, index) => {
-                    const meta = chart.getDatasetMeta(index);
-                    meta.data.forEach((bar, i) => {
-                        const pct = profitPcts[i];
-                        const value = dataset.data[i];
-                        if (pct !== undefined && !isNaN(pct)) {
-                            const text = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
-                            ctx.save();
-                            ctx.fillStyle = value >= 0 ? '#10b981' : '#f43f5e';
-                            ctx.font = 'bold 11px Inter, sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
-                            const yPos = value >= 0 ? bar.y - 4 : bar.y + 4;
-                            ctx.fillText(text, bar.x, yPos);
-                            ctx.restore();
+            });
+        }
+
+        function renderProfitBarChart(fundList) {
+            const ctx = document.getElementById('profitBarChart')?.getContext('2d');
+            if (!ctx || !fundList || fundList.length === 0) return;
+            const labels = [];
+            const profits = [];
+            const profitPcts = [];
+            const colors = [];
+
+            fundList.forEach(f => {
+                const units = parseFloat(f.units) || 0;
+                const avg = parseFloat(f.avgNav) || 0;
+                const cur = parseFloat(f.currentNav) || avg;
+                const cost = units * avg;
+                const profit = (units * cur) - cost;
+                const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
+                labels.push(f.code || '-');
+                profits.push(profit);
+                profitPcts.push(profitPct);
+                colors.push(profit >= 0 ? '#10b981' : '#f43f5e');
+            });
+
+            if (profitBarChartInstance) profitBarChartInstance.destroy();
+
+            profitBarChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'กำไร ($)', data: profits, backgroundColor: colors, borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 25, bottom: 25 } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const idx = context.dataIndex;
+                                    const val = context.raw;
+                                    const pct = profitPcts[idx];
+                                    return ` กำไร: $${val.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+                                }
+                            }
                         }
-                    });
-                });
-            }
-        }]
-    });
-}
-// เรียกใช้ API อัตราแลกเปลี่ยนและตั้งเวลา Auto-update แบบฉลาด
-document.addEventListener('DOMContentLoaded', () => {
-    fetchUsdThbRate();
-    if (typeof fetchLivePrices === 'function') fetchLivePrices(); // ดึงราคา 1 ครั้งทันทีที่เปิดหน้าเว็บ
-
-    setInterval(() => {
-        // 1. ถ้าผู้ใช้ไม่ได้เปิดดูหน้าเว็บ (พับหน้าจอ/สลับแท็บ) -> หยุดดึง
-        if (document.hidden) return;
-
-        const now = new Date();
-        const day = now.getDay();
-        const hour = now.getHours();
-
-        // 2. วันเสาร์ (6) และวันอาทิตย์ (0) -> หยุดดึง
-        if (day === 0 || day === 6) return;
-
-        // 3. ตลาดปิดช่วง 04:00 - 20:00 น. (เวลาไทย) -> หยุดดึง
-        if (hour >= 4 && hour < 20) return;
-
-        // 4. ดึงราคาสดเฉพาะช่วงตลาดเปิด (20:00 - 03:59 น.)
-        if (typeof fetchLivePrices === 'function') {
-            fetchLivePrices();
-        }
-    }, 60000);
-});
-        
-function updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct) {
-    // ดึงอัตราแลกเปลี่ยน Dynamic Real-time (หากดึงไม่สำเร็จจะใช้ค่าสำรอง 35.25)
-    const rate = window.USD_THB_RATE || window.usdThbRate || 35.25;
-
-    // 1. ยอดต้นทุนรวม
-    if (document.getElementById('totalCostDisplay')) {
-        document.getElementById('totalCostDisplay').innerText = `$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    }
-    if (document.getElementById('totalCostThbDisplay')) {
-        document.getElementById('totalCostThbDisplay').innerText = `฿${(totalCost * rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
-    }
-
-    // 2. มูลค่าพอร์ตรวม
-    if (document.getElementById('totalValDisplay')) {
-        document.getElementById('totalValDisplay').innerText = `$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    }
-    if (document.getElementById('totalValThbDisplay')) {
-        document.getElementById('totalValThbDisplay').innerText = `฿${(totalVal * rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} THB`;
-    const portfolioValueTHB = totalVal * rate;
-
-fetch(
-  'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json',
-  {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      value: portfolioValueTHB,
-      updatedAt: new Date().toISOString()
-    })
-  }
-)
-.then(() => console.log('✅ DIME synced:', portfolioValueTHB))
-.catch(err => console.error('❌ DIME sync failed:', err));
-    }
-
-    // 3. กำไร/ขาดทุนสะสม
-    const profitEl = document.getElementById('totalProfitDisplay');
-    if (profitEl) {
-        profitEl.innerText = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        profitEl.className = `text-2xl font-extrabold ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-    }
-    if (document.getElementById('totalProfitSub')) {
-        document.getElementById('totalProfitSub').innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% เทียบกับต้นทุน`;
-    }
-
-    // 4. กำไร/ขาดทุนวันนี้
-    const dailyEl = document.getElementById('dailyProfitDisplay');
-    if (dailyEl) {
-        dailyEl.innerText = `${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        dailyEl.className = `text-2xl font-extrabold ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-    }
-    if (document.getElementById('dailyProfitSub')) {
-        document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้`;
-    }
-}
-        
-// ระบบเรียงลำดับข้อมูลในตาราง (Column Sorting)
-        let currentSortCol = null;
-        let currentSortDir = 'asc';
-
-        function handleSort(colKey) {
-            if (currentSortCol === colKey) {
-                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSortCol = colKey;
-                currentSortDir = 'asc';
-            }
-            renderAll();
-        }
-
-        function getSortIcon(colKey) {
-            if (currentSortCol !== colKey) return '<span class="text-slate-600 ml-1">⇅</span>';
-            return currentSortDir === 'asc' ? '<span class="text-emerald-400 ml-1">▲</span>' : '<span class="text-emerald-400 ml-1">▼</span>';
+                    },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                },
+                plugins: [{
+                    id: 'customBarLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        chart.data.datasets.forEach((dataset, index) => {
+                            const meta = chart.getDatasetMeta(index);
+                            meta.data.forEach((bar, i) => {
+                                const pct = profitPcts[i];
+                                const value = dataset.data[i];
+                                if (pct !== undefined && !isNaN(pct)) {
+                                    const text = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                                    ctx.save();
+                                    ctx.fillStyle = value >= 0 ? '#10b981' : '#f43f5e';
+                                    ctx.font = 'bold 11px Inter, sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
+                                    const yPos = value >= 0 ? bar.y - 4 : bar.y + 4;
+                                    ctx.fillText(text, bar.x, yPos);
+                                    ctx.restore();
+                                }
+                            });
+                        });
+                    }
+                }]
+            });
         }
 
         function renderAll(isLiveUpdate = false) {
-            const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
             let totalVal = 0;
             let totalCost = 0;
-            let dailyProfitSum = 0;
+            let totalDailyGain = 0;
 
-            fundList.forEach(f => {
+            const tbody = document.getElementById('fundTableBody');
+            const allocTbody = document.getElementById('allocTableBody');
+            tbody.innerHTML = '';
+
+            funds.forEach(f => {
                 const units = parseFloat(f.units) || 0;
                 const avgNav = parseFloat(f.avgNav) || 0;
-                const currentNav = parseFloat(f.currentNav) || avgNav;
-                const todayGain = parseFloat(f.todayGain) || 0;
-
-                totalCost += (units * avgNav);
-                totalVal += (units * currentNav);
-                dailyProfitSum += todayGain;
-            });
-
-            const totalProfit = totalVal - totalCost;
-            const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-            const dailyProfitPct = totalVal > 0 ? (dailyProfitSum / totalVal) * 100 : 0;
-
-            updateSummaryCards(totalCost, totalVal, totalProfit, totalProfitPct, dailyProfitSum, dailyProfitPct);
-
-            // เรียงลำดับข้อมูล fundList ตามคอลัมน์ที่เลือก
-            if (currentSortCol && fundList.length > 0) {
-                fundList.sort((a, b) => {
-                    const getVal = (item, key) => {
-                        const units = parseFloat(item.units) || 0;
-                        const avg = parseFloat(item.avgNav) || 0;
-                        const cur = parseFloat(item.currentNav) || avg;
-                        const cost = units * avg;
-                        const val = units * cur;
-                        const profit = val - cost;
-                        const today = parseFloat(item.todayGain) || 0;
-
-                        switch(key) {
-                            case 'code': return (item.code || '').toUpperCase();
-                            case 'units': return units;
-                            case 'avgNav': return avg;
-                            case 'currentNav': return cur;
-                            case 'cost': return cost;
-                            case 'val': return val;
-                            case 'profit': return profit;
-                            case 'todayGain': return today;
-                            default: return 0;
-                        }
-                    };
-
-                    const valA = getVal(a, currentSortCol);
-                    const valB = getVal(b, currentSortCol);
-
-                    if (typeof valA === 'string') {
-                        return currentSortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                    }
-                    return currentSortDir === 'asc' ? valA - valB : valB - valA;
-                });
-            }
-
-            const tables = document.querySelectorAll('table');
-            const fundTable = tables.length > 1 ? tables[1] : tables[0];
-            
-            if (fundTable) {
-                if (fundTable.parentElement && !fundTable.parentElement.classList.contains('overflow-x-auto')) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0';
-                    fundTable.parentElement.insertBefore(wrapper, fundTable);
-                    wrapper.appendChild(fundTable);
-                }
-
-                let tableBody = fundTable.querySelector('tbody');
-                if (!tableBody) {
-                    tableBody = document.createElement('tbody');
-                    fundTable.appendChild(tableBody);
-                }
-
-                const thead = fundTable.querySelector('thead');
-                if (thead) {
-                    thead.innerHTML = `
-                        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
-                            <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
-                            <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
-                            <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
-                            <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
-                            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
-                            <th onclick="handleSort('val')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('val')}</th>
-                            <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
-                            <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
-                            <th class="py-3 px-4 text-center">จัดการ</th>
-                        </tr>
-                    `;
-                }
-
-                tableBody.innerHTML = '';
-                fundList.forEach(f => {
-                    const units = parseFloat(f.units) || 0;
-                    const avgNav = parseFloat(f.avgNav) || 0;
-                    const currentNav = parseFloat(f.currentNav) || avgNav;
-                    const fCost = units * avgNav;
-                    const fVal = units * currentNav;
-                    const profit = fVal - fCost;
-                    const profitPct = fCost > 0 ? (profit / fCost) * 100 : 0;
-                    const todayGain = parseFloat(f.todayGain) || 0;
-                    const prevVal = fVal - todayGain;
-                    const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
-
-                    const flashClass = (isLiveUpdate && f.justUpdated) ? 'flash-updated' : '';
-
-                    const tr = document.createElement('tr');
-                    tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-sm font-mono whitespace-nowrap";
-                    tr.innerHTML = `
-                        <td class="py-3 px-4 font-bold text-emerald-400 text-left font-sans">${f.code || '-'}</td>
-                        <td class="py-3 px-4 text-right">${units.toFixed(4)}</td>
-                        <td class="py-3 px-4 text-right">$${avgNav.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right ${flashClass}">$${currentNav.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right text-slate-300">$${fCost.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right font-bold text-white ${flashClass}">$${fVal.toFixed(2)}</td>
-                        <td class="py-3 px-4 text-right ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'} ${flashClass}">
-                            ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} (${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3 px-4 text-right ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'} ${flashClass}">
-                            ${todayGain >= 0 ? '+' : ''}$${todayGain.toFixed(2)} (${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3 px-4 text-center font-sans space-x-2">
-                            <button onclick="openFundModal('${f.id}')" class="text-slate-400 hover:text-white transition">✏️</button>
-                            <button onclick="deleteFund('${f.id}')" class="text-slate-400 hover:text-rose-400 transition">🗑️</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(tr);
-                    
-                    f.justUpdated = false;
-                });
-
-                let tfoot = fundTable.querySelector('tfoot');
-                if (!tfoot) {
-                    tfoot = document.createElement('tfoot');
-                    fundTable.appendChild(tfoot);
-                }
-                tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-sm font-mono whitespace-nowrap";
-                tfoot.innerHTML = `
-                    <tr>
-                        <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                        <td class="py-3.5 px-4 text-right text-slate-200">$${totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-right text-white font-bold">$${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3.5 px-4 text-right ${dailyProfitSum >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${dailyProfitSum >= 0 ? '+' : ''}$${dailyProfitSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)
-                        </td>
-                        <td class="py-3.5 px-4 text-center font-sans"></td>
-                    </tr>
-                `;
-            }
-
-// บันทึกประวัติและอัปเดตกราฟทั้งสอง
-logPortfolioHistory(totalVal, totalCost);
-renderProfitBarChart(fundList);
-
-renderAllocation(totalVal); // <-- บรรทัดเดิมที่มีอยู่แล้ว
-
-            renderAllocation(totalVal);
-        }
-
-        function renderAllocation(totalVal) {
-            const fundList = (typeof funds !== 'undefined' && Array.isArray(funds)) ? funds : [];
-            const tables = document.querySelectorAll('table');
-            const allocTable = tables.length > 0 ? tables[0] : null;
-            if (!allocTable) return;
-
-            if (allocTable.parentElement && !allocTable.parentElement.classList.contains('overflow-x-auto')) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0';
-                allocTable.parentElement.insertBefore(wrapper, allocTable);
-                wrapper.appendChild(allocTable);
-            }
-
-            let allocBody = allocTable.querySelector('tbody');
-            if (!allocBody) {
-                allocBody = document.createElement('tbody');
-                allocTable.appendChild(allocBody);
-            }
-
-            const thead = allocTable.querySelector('thead');
-            if (thead) {
-                thead.innerHTML = `
-                    <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap">
-                        <th class="py-3 px-4 text-left">สัญลักษณ์</th>
-                        <th class="py-3 px-4 text-right">ราคาปัจจุบัน ($)</th>
-                        <th class="py-3 px-4 text-right">สัดส่วนปัจจุบัน (%)</th>
-                        <th class="py-3 px-4 text-right">สัดส่วนเป้าหมาย (%)</th>
-                        <th class="py-3 px-4 text-right">ส่วนต่าง (%)</th>
-                    </tr>
-                `;
-            }
-
-            allocBody.innerHTML = '';
-            fundList.forEach(f => {
-                const units = parseFloat(f.units) || 0;
-                const avgNav = parseFloat(f.avgNav) || 0;
-                const currentNav = parseFloat(f.currentNav) || avgNav;
-                const fVal = units * currentNav;
-                const currentPct = totalVal > 0 ? (fVal / totalVal) * 100 : 0;
-                const targetPct = parseFloat(f.targetPct) || 0;
-                const diffPct = currentPct - targetPct;
-
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-slate-700/50 hover:bg-slate-800/40 text-sm font-mono whitespace-nowrap";
-                tr.innerHTML = `
-                    <td class="py-3 px-4 font-bold text-slate-200 text-left font-sans">${f.code || '-'}</td>
-                    <td class="py-3 px-4 text-right">$${currentNav.toFixed(2)}</td>
-                    <td class="py-3 px-4 text-right">${currentPct.toFixed(2)}%</td>
-                    <td class="py-3 px-4 text-right text-slate-400">${targetPct.toFixed(1)}%</td>
-                    <td class="py-3 px-4 text-right font-bold ${diffPct >= 0 ? 'text-rose-400' : 'text-emerald-400'}">
-                        ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%
-                    </td>
-                `;
-                allocBody.appendChild(tr);
-            });
-        }
-        // Helper to convert File to Base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        // ฟังก์ชันเปิด Modal กรอก API Key
-function openApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const input = document.getElementById('apiKeyInput');
-    if (modal) {
-        if (input) {
-            input.value = localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '';
-        }
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    } else {
-        // สำรองกรณีหา Modal ไม่เจอ จะขึ้นช่อง Prompt ให้ใส่แทน
-        const key = prompt('กรุณากรอก Gemini API Key:', localStorage.getItem('GEMINI_API_KEY') || '');
-        if (key !== null) {
-            localStorage.setItem('GEMINI_API_KEY', key.trim());
-            localStorage.setItem('gemini_api_key', key.trim());
-            alert('บันทึก API Key เรียบร้อยแล้ว!');
-        }
-    }
-}
-
-// ฟังก์ชันปิด Modal
-function closeApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-}
-
-// ฟังก์ชันบันทึก Key ลงเครื่อง
-function saveApiKey() {
-    // ดึงค่าเจาะจงจากช่อง Input ใน Modal ป้องกันปัญหาอ่านค่าว่าง
-    const modalInput = document.querySelector('#apiKeyModal input') || document.getElementById('apiKeyInput');
-    const key = modalInput ? modalInput.value.trim() : '';
-
-    if (!key) {
-        alert('กรุณากรอก API Key ก่อนบันทึกครับ');
-        return;
-    }
-
-    localStorage.setItem('GEMINI_API_KEY', key);
-    localStorage.setItem('gemini_api_key', key);
-    alert('บันทึก API Key เรียบร้อยแล้ว!');
-    closeApiKeyModal();
-}
-        
-// 1. ฟังก์ชันเมื่อกดปุ่มสแกนภาพด้วย AI
-function triggerScanSlip() {
-    const apiKey = localStorage.getItem('GEMINI_API_KEY');
-    if (!apiKey) {
-        alert('กรุณากรอก Gemini API Key ก่อนใช้งานระบบสแกนภาพครับ');
-        if (typeof openApiKeyModal === 'function') openApiKeyModal();
-        return;
-    }
-    
-    const fileInput = document.getElementById('slipFileInput');
-    if (fileInput) {
-        fileInput.value = ''; // รีเซ็ตค่าเดิม
-        fileInput.click();
-    } else {
-        alert('ไม่พบแท็ก slipFileInput ในระบบ');
-    }
-}
-
-// 2. ฟังก์ชันส่งภาพไปประมวลผลด้วย Gemini API
-async function processSlipImage(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const apiKey = localStorage.getItem('GEMINI_API_KEY');
-    if (!apiKey) return;
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const base64Data = e.target.result.split(',')[1];
-        const mimeType = file.type || 'image/jpeg';
-
-        try {
-            // เรียกใช้ Gemini API (รุ่น Flash อ่านภาพได้เร็ว)
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: "วิเคราะห์ภาพสลิป/ใบสั่งซื้อหุ้นหรือกองทุนนี้แล้วตอบเป็น JSON รูปแบบนี้เท่านั้น: {\"code\": \"สัญลักษณ์หุ้น\", \"units\": จำนวนหุ้น(number), \"avgNav\": ราคาต่อหุ้น(number)}" },
-                            { inline_data: { mime_type: mimeType, data: base64Data } }
-                        ]
-                    }]
-                })
-            });
-
-            const data = await response.json();
-            const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if (textResponse) {
-                // ดึงข้อมูล JSON จากคำตอบของ AI
-                const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const result = JSON.parse(jsonMatch[0]);
-                    alert(`สแกนสำเร็จ!\nสัญลักษณ์: ${result.code || '-'}\nจำนวน: ${result.units || 0}\nราคา: $${result.avgNav || 0}`);
-                    
-                    // หากมีฟังก์ชันเปิด Modal เพิ่มหุ้น สามารถส่งค่าใส่ Form ได้ทันที
-                    if (typeof openFundModal === 'function') {
-                        openFundModal();
-                        setTimeout(() => {
-                            if (document.getElementById('fundCode')) document.getElementById('fundCode').value = result.code || '';
-                            if (document.getElementById('fundUnits')) document.getElementById('fundUnits').value = result.units || '';
-                            if (document.getElementById('fundAvgNav')) document.getElementById('fundAvgNav').value = result.avgNav || '';
-                        }, 200);
-                    }
-                } else {
-                    alert('AI ไม่สามารถอ่านข้อมูลสลิปนี้ได้ กรุณาลองใช้อีกรูปครับ');
-                }
-            } else {
-                alert('เกิดข้อผิดพลาดจาก API: ' + (data.error?.message || 'ไม่สามารถประมวลผลได้'));
-            }
-        } catch (err) {
-            console.error(err);
-            alert('ไม่สามารถเชื่อมต่อกับ Gemini AI ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือ API Key');
-        }
-    };
-    reader.readAsDataURL(file);
-}
-        
-        function openFundModal(id = null) {
-            document.getElementById('editFundId').value = id || '';
-            if (id) {
-                const f = funds.find(item => item.id === id);
-                if (f) {
-                    document.getElementById('modalTitle').innerText = "แก้ไขสินทรัพย์";
-                    document.getElementById('inputCode').value = f.code || '';
-                    document.getElementById('inputUnits').value = f.units || '';
-                    document.getElementById('inputAvgNav').value = f.avgNav || '';
-                    document.getElementById('inputCurrentNav').value = f.currentNav || '';
-                    document.getElementById('inputTodayGain').value = f.todayGain || 0;
-                    document.getElementById('inputTargetPct').value = f.targetPct || 0;
-                }
-            } else {
-                document.getElementById('modalTitle').innerText = "เพิ่มสินทรัพย์ใหม่";
-                document.getElementById('inputCode').value = '';
-                document.getElementById('inputUnits').value = '';
-                document.getElementById('inputAvgNav').value = '';
-                document.getElementById('inputCurrentNav').value = '';
-                document.getElementById('inputTodayGain').value = '';
-                document.getElementById('inputTargetPct').value = '';
-            }
-            document.getElementById('fundModal').classList.remove('hidden');
-        }
-
-        function closeFundModal() { document.getElementById('fundModal').classList.add('hidden'); }
-
-async function saveToFirebase() {
-            try {
-                await fetch(getDbUrl(), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(funds)
-                });
-            } catch (err) { 
-                console.error("Firebase Sync Error", err); 
-            }
-        }
-
-        function saveFund() {
-            try {
-                const id = document.getElementById('editFundId').value;
-                const code = document.getElementById('inputCode').value.toUpperCase();
-                const units = parseFloat(document.getElementById('inputUnits').value) || 0;
-                const avgNav = parseFloat(document.getElementById('inputAvgNav').value) || 0;
-                const currentNav = parseFloat(document.getElementById('inputCurrentNav').value) || avgNav;
-                const todayGain = parseFloat(document.getElementById('inputTodayGain').value) || 0;
-                const targetPct = parseFloat(document.getElementById('inputTargetPct').value) || 0;
-
-                if (!code) {
-                    alert("กรุณากรอก Ticker สัญลักษณ์หุ้น");
-                    return;
-                }
-
-                if (id) {
-                    const f = funds.find(item => item.id === id);
-                    if (f) {
-                        f.code = code; 
-                        f.units = units; 
-                        f.avgNav = avgNav; 
-                        f.currentNav = currentNav;
-                        f.todayGain = todayGain; 
-                        f.targetPct = targetPct;
-                    }
-                } else {
-                    funds.push({
-                        id: 'fund_' + Date.now(),
-                        code: code, units: units, avgNav: avgNav, currentNav: currentNav,
-                        todayGain: todayGain, todayGainPct: 0, targetPct: targetPct
-                    });
-                }
-
-                // ปิด Modal และแสดงผลบนหน้าจอทันที
-                closeFundModal();
-                renderAll();
-
-                // บันทึกลง Cloud ใน background
-                saveToFirebase();
-
-            } catch (err) {
-                console.error("Save Error:", err);
-                alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
-            }
-        }
-
-        async function deleteFund(id) {
-            if (confirm("ยืนยันการลบรายการนี้ใช่หรือไม่?")) {
-                funds = funds.filter(f => f.id !== id);
-                await saveToFirebase();
-                renderAll();
-            }
-        }
-
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(funds));
-            const a = document.createElement('a');
-            a.href = dataStr; a.download = "dime_portfolio_data.json";
-            a.click();
-        }
-
-        function importData() {
-            const input = document.createElement('input');
-            input.type = 'file'; input.accept = 'application/json';
-            input.onchange = e => {
-                const reader = new FileReader();
-                reader.readAsText(e.target.files[0], 'UTF-8');
-                reader.onload = async event => {
-                    funds = JSON.parse(event.target.result);
-                    await saveToFirebase();
-                    renderAll();
-                }
-            }
-            input.click();
-        }
-
-        loadData();
-
-        // Auto Refresh ทุกๆ 10 วินาที
-        setInterval(loadData, 10000);
-
-        // PWA Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('PWA Service Worker Registered'))
-                .catch((err) => console.error('Service Worker Error', err));
-        }
-    </script>
-<!-- Input ซ่อนสำหรับเลือกไฟล์รูปสลิป -->
-<input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="processSlipImage(event)">
-<!-- Modal สำหรับกรอก Gemini API Key -->
-<div id="apiKeyModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-xl">
-        <h3 class="text-lg font-bold text-white mb-2">🔑 ตั้งค่า Gemini API Key</h3>
-        <p class="text-xs text-slate-400 mb-4">หากยังไม่มี สามารถขอ Key ฟรีได้ที่ <a href="https://aistudio.google.com/" target="_blank" class="text-emerald-400 underline">Google AI Studio</a></p>
-        <input type="text" id="apiKeyInput" autocomplete="off" placeholder="วาง API Key ตรงนี้ (ขึ้นต้นด้วย AQ... หรือ AIzaSy...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white mb-4 focus:outline-none focus:border-emerald-500 font-mono">
-        <div class="flex justify-end gap-2">
-            <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">ยกเลิก</button>
-            <button onclick="saveApiKey()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs transition">บันทึก</button>
-        </div>
-    </div>
-</div>
-</body>
-</html>
