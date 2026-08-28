@@ -349,6 +349,10 @@
             try {
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
+                console.log(
+  'Yahoo error:',
+  JSON.stringify(data?.finance?.error, null, 2)
+);
                 funds = (data && data.length > 0) ? data : (typeof defaultFunds !== 'undefined' ? defaultFunds : []);
             } catch (err) {
                 funds = (typeof defaultFunds !== 'undefined') ? defaultFunds : [];
