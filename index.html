@@ -604,7 +604,61 @@
                 );
             });
 
-            // 2. Sync ประวัติพอร์ตรายวันไปยัง dime_history (คีย์ YYYYMMDD)
+            // 2. Sync ข้อมูลการวิเคราะห์ไปยัง dime_analytics/current (4 ค่า)
+            let topHolding = 'N/A';
+            let bestPerformer = 'N/A';
+            let top3Concentration = 0;
+            const portfolioReturnPct = totalProfitPct;
+
+            if (funds && funds.length > 0) {
+                // คำนวณ Value, Return (%) ของแต่ละสินทรัพย์
+                const analyzedFunds = funds.map(f => {
+                    const u = parseFloat(f.units) || 0;
+                    const avg = parseFloat(f.avgNav) || 0;
+                    const cur = parseFloat(f.currentNav) || avg;
+                    const cost = u * avg;
+                    const val = u * cur;
+                    const ret = cost > 0 ? ((val - cost) / cost) * 100 : 0;
+                    return { code: f.code, val, ret };
+                });
+
+                // หา Top Holding (มูลค่าสูงสุด)
+                analyzedFunds.sort((a, b) => b.val - a.val);
+                topHolding = analyzedFunds[0]?.code || 'N/A';
+
+                // คำนวณ Top 3 Concentration (%)
+                const top3Val = analyzedFunds.slice(0, 3).reduce((sum, item) => sum + item.val, 0);
+                top3Concentration = totalVal > 0 ? (top3Val / totalVal) * 100 : 0;
+
+                // หา Best Performer (ผลตอบแทน % สูงสุด)
+                const sortedByReturn = [...analyzedFunds].sort((a, b) => b.ret - a.ret);
+                bestPerformer = sortedByReturn[0]?.code || 'N/A';
+            }
+
+            fetch(
+                'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_analytics/current.json',
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        topHolding: topHolding,
+                        bestPerformer: bestPerformer,
+                        top3Concentration: parseFloat(top3Concentration.toFixed(2)),
+                        portfolioReturn: parseFloat(portfolioReturnPct.toFixed(2)),
+                        updatedAt: new Date().toISOString()
+                    })
+                }
+            )
+            .then(res => {
+                console.log('📈 DIME Analytics synced status:', res.status);
+            })
+            .catch(err => {
+                console.error('❌ DIME Analytics sync failed:', err);
+            });
+
+            // 3. Sync ประวัติพอร์ตรายวันไปยัง dime_history (คีย์ YYYYMMDD)
             const todayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
             const todayIso = new Date().toISOString();
 
