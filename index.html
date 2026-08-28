@@ -368,6 +368,8 @@
         // เปลี่ยนมาใช้ Proxy ของ allorigins ป้องกันปัญหา corsproxy ล่ม
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
+        console.log('Proxy URL:', proxyUrl);
+console.log('Target URL:', targetUrl);
         const res = await fetch(proxyUrl);
         const data = await res.json();
 
