@@ -350,7 +350,7 @@
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
                 console.log(
-  'Yahoo error:',
+  'Yahoo error full:',
   JSON.stringify(data?.finance?.error, null, 2)
 );
                 funds = (data && data.length > 0) ? data : (typeof defaultFunds !== 'undefined' ? defaultFunds : []);
@@ -377,7 +377,7 @@ console.log('Target URL:', targetUrl);
         const res = await fetch(proxyUrl);
         const data = await res.json();
 
-        console.log('Yahoo error:', data?.finance?.error);
+        console.log('Yahoo error full:', data?.finance?.error);
         
         const results = data?.quoteResponse?.result || [];
         if (results && results.length > 0) {
