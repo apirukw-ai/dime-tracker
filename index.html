@@ -397,19 +397,22 @@
             renderAll(true);
         }
 
-        async function fetchUsdThbRate() {
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/USD');
-                const data = await res.json();
-                if (data && data.rates && data.rates.THB) {
-                    USD_THB_RATE = data.rates.THB;
-                    const badge = document.getElementById('usdThbBadge');
-                    if (badge) badge.innerText = `1 USD = ${USD_THB_RATE.toFixed(2)} THB`;
-                }
-            } catch (e) {
-                console.error("Error USD/THB rate:", e);
-            }
+ async function fetchUsdThbRate() {
+    try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data && data.rates && data.rates.THB) {
+            USD_THB_RATE = data.rates.THB;
+            const badge = document.getElementById('usdThbBadge');
+            if (badge) badge.innerText = `1 USD = ${USD_THB_RATE.toFixed(2)} THB`;
+            
+            // เพิ่มบรรทัดนี้ เพื่อสั่งให้ระบบคำนวณเงินบาทใหม่ทั้งหมด
+            renderAll();
         }
+    } catch (e) {
+        console.error("Error USD/THB rate:", e);
+    }
+}
 
         function logPortfolioHistory(totalVal, totalCost) {
             if (!totalVal || totalVal <= 0) return;
@@ -953,11 +956,19 @@ const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').tr
             input.click();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchUsdThbRate();
-            loadData();
-            setInterval(fetchLivePrices, 60000);
-        });
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. รอให้ดึงเรทค่าเงินล่าสุดให้เสร็จก่อน (สังเกตว่ามีคำว่า await เพิ่มเข้ามา)
+    await fetchUsdThbRate(); 
+    
+    // 2. ค่อยโหลดข้อมูลพอร์ตมาคำนวณ
+    loadData();
+    
+    // 3. ตั้งเวลาอัปเดตราคาหุ้นทุก 1 นาที (ของเดิม)
+    setInterval(fetchLivePrices, 60000);
+    
+    // 4. ตั้งเวลาอัปเดตเรทค่าเงินทุกๆ 1 ชั่วโมง
+    setInterval(fetchUsdThbRate, 3600000); 
+});
     </script>
 </body>
 </html>
