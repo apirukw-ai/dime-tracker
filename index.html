@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIME! Investment Portfolio Tracker</title>
+    <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,6 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="DIME Tracker">
     <link rel="apple-touch-icon" href="https://dime.co.th/favicon.ico">
     
+    <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -57,16 +59,26 @@
             font-weight: 700;
             box-shadow: 0 0 12px rgba(0, 229, 153, 0.25);
             transition: all 0.2s ease;
+            cursor: pointer;
         }
         .btn-dime:hover { transform: translateY(-1px); box-shadow: 0 0 18px rgba(0, 229, 153, 0.4); }
 
-        .btn-slate { background: #334155; color: #cbd5e1; border: 1px solid #475569; }
+        .btn-slate { background: #334155; color: #cbd5e1; border: 1px solid #475569; cursor: pointer; }
         .btn-slate:hover { background: #475569; color: #ffffff; }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th, td { padding: 0.8rem 0.9rem; border-bottom: 1px solid #334155; }
         th { font-weight: 700; color: #00e599; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(15, 23, 42, 0.3); }
         tr:hover td { background-color: rgba(51, 65, 85, 0.4); }
+        
+        @keyframes priceGlow {
+            0% { background-color: rgba(52, 211, 153, 0.4); }
+            100% { background-color: transparent; }
+        }
+        .flash-updated {
+            animation: priceGlow 1.2s ease-out;
+            border-radius: 4px;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -75,6 +87,7 @@
 
     <div class="max-w-7xl mx-auto space-y-5">
 
+        <!-- Header Section -->
         <header class="flex flex-col md:flex-row justify-between items-center gap-4 card-header-glow p-4 sm:p-5">
             <div class="flex items-center gap-3.5">
                 <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-300 flex items-center justify-center text-slate-950 font-black text-2xl shadow-md shadow-emerald-500/20">
@@ -88,6 +101,7 @@
                 </div>
             </div>
 
+            <!-- Sync Status Center -->
             <div class="bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-700 text-xs flex items-center gap-3">
                 <span class="text-slate-300 flex items-center gap-1.5 font-medium">
                     <i class="fa-solid fa-cloud text-dime"></i> Sync ID: 
@@ -98,6 +112,7 @@
                 </span>
             </div>
 
+            <!-- Action Buttons -->
             <div class="flex flex-wrap gap-2">
                 <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า API Key">
                     <i class="fa-solid fa-key text-yellow-400"></i> API Keys
@@ -111,6 +126,7 @@
             </div>
         </header>
 
+        <!-- Top Summary Cards (4 ช่อง) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="card-slate p-5">
                 <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">มูลค่าพอร์ต</p>
@@ -134,6 +150,7 @@
             </div>
         </div>
 
+        <!-- แถบแสดงอัตราแลกเปลี่ยน Real-time -->
         <div class="flex justify-between items-center mb-4 px-1">
             <div class="flex items-center text-xs text-slate-400 gap-2 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/60 shadow-sm">
                 <span>💱 อัตราแลกเปลี่ยนปัจจุบัน:</span>
@@ -142,6 +159,7 @@
             </div>
         </div>
 
+        <!-- โซนแสดงกราฟ 2 รูปแบบ -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div class="card-slate p-5">
                 <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -161,6 +179,7 @@
             </div>
         </div>
         
+        <!-- Target Allocation Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <h3 class="text-xs font-bold text-dime mb-3 flex items-center gap-2 uppercase tracking-wider">
                 <i class="fa-solid fa-sliders"></i> สัดส่วนเป้าหมาย
@@ -179,6 +198,7 @@
             </table>
         </div>
 
+        <!-- Main Investment Table -->
         <div class="card-slate p-5 overflow-x-auto">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
@@ -205,14 +225,17 @@
 
     </div>
 
-    <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="handleSlipUploadGemini(event)">
+    <!-- Input สำหรับสแกนสลิป -->
+    <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="processSlipImage(event)">
 
+    <!-- Gemini Loader Overlay -->
     <div id="aiLoader" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
         <div class="w-14 h-14 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4"></div>
         <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-brain text-dime"></i> Google Gemini AI กำลังวิเคราะห์รูปภาพ...</h3>
         <p class="text-xs text-slate-400 mt-1.5">กำลังถอดรหัสข้อมูล Ticker, จำนวนหุ้น, ราคา และกำไร</p>
     </div>
 
+    <!-- API Key Settings Modal -->
     <div id="apiKeyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
         <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl space-y-4">
             <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-key text-yellow-400"></i> ตั้งค่า API Keys</h3>
@@ -222,7 +245,7 @@
                 <p class="text-[10px] text-slate-400 mt-1">รับคีย์ฟรีที่ <a href="https://aistudio.google.com/" target="_blank" class="text-dime underline">Google AI Studio</a></p>
             </div>
             <div>
-                <label class="text-xs text-slate-300 font-semibold">Finnhub API Key (สำหรับดึงราคาหุ้น Real-time)</label>
+                <label class="text-xs text-slate-300 font-semibold">Finnhub API Key (สำหรับราคา Real-time)</label>
                 <input type="password" id="inputFinnhubKey" placeholder="c..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none text-xs font-mono">
                 <p class="text-[10px] text-slate-400 mt-1">รับคีย์ฟรีที่ <a href="https://finnhub.io/" target="_blank" class="text-dime underline">Finnhub.io</a></p>
             </div>
@@ -233,6 +256,7 @@
         </div>
     </div>
 
+    <!-- Add/Edit Modal -->
     <div id="fundModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
         <div class="card-slate p-6 w-full max-w-md bg-slate-900 border border-slate-700 shadow-2xl">
             <h3 id="modalTitle" class="text-base font-bold text-white mb-4">เพิ่ม/แก้ไข รายการลงทุน</h3>
@@ -297,6 +321,8 @@
         ];
 
         let funds = [];
+        let historyChartInstance = null;
+        let profitBarChartInstance = null;
 
         function changeSyncId() {
             currentSyncId = document.getElementById('syncIdInput').value.trim() || 'my-real-dime-port';
@@ -305,45 +331,29 @@
         }
 
         function formatNum(num) {
-            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        // Style สำหรับ Flash Effect ตอนราคาอัปเดต
-        if (!document.getElementById('live-flash-style')) {
-            const style = document.createElement('style');
-            style.id = 'live-flash-style';
-            style.innerHTML = `
-                @keyframes priceGlow {
-                    0% { background-color: rgba(52, 211, 153, 0.4); }
-                    100% { background-color: transparent; }
-                }
-                .flash-updated {
-                    animation: priceGlow 1.2s ease-out;
-                    border-radius: 4px;
-                }
-            `;
-            document.head.appendChild(style);
+            return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         async function loadData() {
             try {
                 const res = await fetch(getDbUrl());
                 const data = await res.json();
-                funds = (data && data.length > 0) ? data : defaultFunds;
+                if (data && Array.isArray(data) && data.length > 0) {
+                    funds = data;
+                } else {
+                    funds = [...defaultFunds];
+                }
             } catch (err) {
-                funds = defaultFunds;
+                console.warn('Firebase error, using default funds:', err);
+                funds = [...defaultFunds];
             }
             renderAll();
             fetchLivePrices();
         }
 
-        // --- ฟังก์ชันดึงราคา Real-time จาก Finnhub API แทน Yahoo Finance ---
         async function fetchLivePrices() {
             const finnhubKey = localStorage.getItem('da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0') || '';
-            if (!finnhubKey) {
-                console.warn('ยังไม่ได้ตั้งค่า Finnhub API Key กรุณาตั้งค่าที่ปุ่ม API Keys ด้านบน');
-                return;
-            }
+            if (!finnhubKey) return;
 
             for (const fund of funds) {
                 if (!fund.code) continue;
@@ -351,31 +361,21 @@
                     const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fund.code.trim().toUpperCase())}&token=${finnhubKey}`);
                     const quote = await res.json();
                     
-                    // Finnhub response: c = current price, d = change, dp = percent change
-                    if (quote && quote.c !== undefined && quote.c !== null && quote.c !== 0) {
+                    if (quote && quote.c) {
                         fund.currentNav = quote.c;
-                        if (quote.d !== undefined && quote.d !== null) {
+                        if (quote.d !== undefined) {
                             const units = parseFloat(fund.units) || 0;
                             fund.todayGain = quote.d * units;
                         }
                         fund.justUpdated = true;
                     }
                 } catch (err) {
-                    console.warn(` Finnhub Error สำหรับ ${fund.code}:`, err);
+                    console.warn(`Finnhub error [${fund.code}]:`, err);
                 }
             }
             renderAll(true);
         }
 
-        // ตั้งเวลาอัปเดตราคาอัตโนมัติทุกๆ 60 วินาที
-        if (!window.livePriceInterval) {
-            window.livePriceInterval = setInterval(fetchLivePrices, 60000);
-        }
-
-        let historyChartInstance = null;
-        let profitBarChartInstance = null;
-
-        // ดึงอัตราแลกเปลี่ยน USD/THB Real-time
         async function fetchUsdThbRate() {
             try {
                 const res = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -386,7 +386,7 @@
                     if (badge) badge.innerText = `1 USD = ${USD_THB_RATE.toFixed(2)} THB`;
                 }
             } catch (e) {
-                console.error("Error fetching USD/THB rate:", e);
+                console.error("Error USD/THB rate:", e);
             }
         }
 
@@ -473,47 +473,13 @@
                     maintainAspectRatio: false,
                     layout: { padding: { top: 25, bottom: 25 } },
                     plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const idx = context.dataIndex;
-                                    const val = context.raw;
-                                    const pct = profitPcts[idx];
-                                    return ` กำไร: $${val.toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
-                                }
-                            }
-                        }
+                        legend: { display: false }
                     },
                     scales: {
                         x: { ticks: { color: '#64748b' }, grid: { display: false } },
                         y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
-                },
-                plugins: [{
-                    id: 'customBarLabels',
-                    afterDatasetsDraw(chart) {
-                        const { ctx } = chart;
-                        chart.data.datasets.forEach((dataset, index) => {
-                            const meta = chart.getDatasetMeta(index);
-                            meta.data.forEach((bar, i) => {
-                                const pct = profitPcts[i];
-                                const value = dataset.data[i];
-                                if (pct !== undefined && !isNaN(pct)) {
-                                    const text = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
-                                    ctx.save();
-                                    ctx.fillStyle = value >= 0 ? '#10b981' : '#f43f5e';
-                                    ctx.font = 'bold 11px Inter, sans-serif';
-                                    ctx.textAlign = 'center';
-                                    ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
-                                    const yPos = value >= 0 ? bar.y - 4 : bar.y + 4;
-                                    ctx.fillText(text, bar.x, yPos);
-                                    ctx.restore();
-                                }
-                            });
-                        });
-                    }
-                }]
+                }
             });
         }
 
@@ -524,8 +490,313 @@
 
             const tbody = document.getElementById('fundTableBody');
             const allocTbody = document.getElementById('allocTableBody');
+            if (!tbody || !allocTbody) return;
+
             tbody.innerHTML = '';
 
             funds.forEach(f => {
                 const units = parseFloat(f.units) || 0;
                 const avgNav = parseFloat(f.avgNav) || 0;
+                const currentNav = parseFloat(f.currentNav) || avgNav;
+                const cost = units * avgNav;
+                const marketVal = units * currentNav;
+                const profit = marketVal - cost;
+                const profitPct = cost > 0 ? (profit / cost) * 100 : 0;
+                const todayGain = parseFloat(f.todayGain) || 0;
+
+                totalVal += marketVal;
+                totalCost += cost;
+                totalDailyGain += todayGain;
+
+                const flashClass = (isLiveUpdate && f.justUpdated) ? 'flash-updated' : '';
+                if (f.justUpdated) f.justUpdated = false;
+
+                tbody.innerHTML += `
+                    <tr class="${flashClass}">
+                        <td class="font-bold text-white">${f.code}</td>
+                        <td class="text-right font-mono">${formatNum(units)}</td>
+                        <td class="text-right font-mono">$${formatNum(avgNav)}</td>
+                        <td class="text-right font-mono text-emerald-400 font-bold">$${formatNum(currentNav)}</td>
+                        <td class="text-right font-mono">$${formatNum(cost)}</td>
+                        <td class="text-right font-mono font-bold">$${formatNum(marketVal)}</td>
+                        <td class="text-right font-mono ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${profit >= 0 ? '+' : ''}$${formatNum(profit)} <br>
+                            <span class="text-[10px]">(${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)</span>
+                        </td>
+                        <td class="text-right font-mono ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)}
+                        </td>
+                        <td class="text-center">
+                            <button onclick="editFund('${f.id}')" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteFund('${f.id}')" class="text-slate-400 hover:text-rose-400 px-1.5"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const totalProfit = totalVal - totalCost;
+            const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+            const dailyProfitPct = totalVal > 0 ? (totalDailyGain / totalVal) * 100 : 0;
+
+            document.getElementById('totalValDisplay').innerText = `$${formatNum(totalVal)}`;
+            document.getElementById('totalValThbDisplay').innerText = `฿${formatNum(totalVal * USD_THB_RATE)} THB`;
+
+            document.getElementById('totalCostDisplay').innerText = `$${formatNum(totalCost)}`;
+            document.getElementById('totalCostThbDisplay').innerText = `฿${formatNum(totalCost * USD_THB_RATE)} THB`;
+
+            const totalProfitEl = document.getElementById('totalProfitDisplay');
+            totalProfitEl.innerText = `${totalProfit >= 0 ? '+' : ''}$${formatNum(totalProfit)}`;
+            totalProfitEl.className = `text-2xl font-extrabold ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('totalProfitSub').innerText = `${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}% จากต้นทุน`;
+
+            const dailyProfitEl = document.getElementById('dailyProfitDisplay');
+            dailyProfitEl.innerText = `${totalDailyGain >= 0 ? '+' : ''}$${formatNum(totalDailyGain)}`;
+            dailyProfitEl.className = `text-2xl font-extrabold ${totalDailyGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้`;
+
+            allocTbody.innerHTML = '';
+            funds.forEach(f => {
+                const marketVal = (parseFloat(f.units) || 0) * (parseFloat(f.currentNav) || 0);
+                const currentPct = totalVal > 0 ? (marketVal / totalVal) * 100 : 0;
+                const targetPct = parseFloat(f.targetPct) || 0;
+                const diff = currentPct - targetPct;
+
+                allocTbody.innerHTML += `
+                    <tr>
+                        <td class="font-bold text-white">${f.code}</td>
+                        <td class="text-right font-mono">$${formatNum(parseFloat(f.currentNav) || 0)}</td>
+                        <td class="text-right font-mono">${currentPct.toFixed(1)}%</td>
+                        <td class="text-right font-mono text-emerald-400">${targetPct.toFixed(1)}%</td>
+                        <td class="text-right font-mono ${diff >= 0 ? 'text-emerald-400' : 'text-amber-400'}">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+
+            renderProfitBarChart(funds);
+            logPortfolioHistory(totalVal, totalCost);
+            saveDataToCloud();
+        }
+
+        async function saveDataToCloud() {
+            try {
+                await fetch(getDbUrl(), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(funds)
+                });
+            } catch (err) {
+                console.error('Cloud save error:', err);
+            }
+        }
+
+        function openApiKeyModal() {
+            document.getElementById('inputGeminiKey').value = localStorage.getItem('dime_gemini_key') || '';
+            document.getElementById('inputFinnhubKey').value = localStorage.getItem('dime_finnhub_key') || '';
+            const modal = document.getElementById('apiKeyModal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            modal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const geminiKey = document.getElementById('inputGeminiKey').value.trim();
+            const finnhubKey = document.getElementById('inputFinnhubKey').value.trim();
+            localStorage.setItem('dime_gemini_key', geminiKey);
+            localStorage.setItem('dime_finnhub_key', finnhubKey);
+            closeApiKeyModal();
+            alert('บันทึก API Keys เรียบร้อยแล้ว!');
+            fetchLivePrices();
+        }
+
+        function openFundModal() {
+            document.getElementById('editFundId').value = '';
+            document.getElementById('inputCode').value = '';
+            document.getElementById('inputUnits').value = '';
+            document.getElementById('inputAvgNav').value = '';
+            document.getElementById('inputCurrentNav').value = '';
+            document.getElementById('inputTodayGain').value = '';
+            document.getElementById('inputTargetPct').value = '';
+            document.getElementById('modalTitle').innerText = 'เพิ่มสินทรัพย์ใหม่';
+            const modal = document.getElementById('fundModal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeFundModal() {
+            const modal = document.getElementById('fundModal');
+            modal.classList.add('hidden');
+        }
+
+        function editFund(id) {
+            const f = funds.find(item => item.id === id);
+            if (!f) return;
+            document.getElementById('editFundId').value = f.id;
+            document.getElementById('inputCode').value = f.code;
+            document.getElementById('inputUnits').value = f.units;
+            document.getElementById('inputAvgNav').value = f.avgNav;
+            document.getElementById('inputCurrentNav').value = f.currentNav;
+            document.getElementById('inputTodayGain').value = f.todayGain || 0;
+            document.getElementById('inputTargetPct').value = f.targetPct || 0;
+            document.getElementById('modalTitle').innerText = 'แก้ไขสินทรัพย์';
+            const modal = document.getElementById('fundModal');
+            modal.classList.remove('hidden');
+        }
+
+        function deleteFund(id) {
+            if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
+                funds = funds.filter(item => item.id !== id);
+                renderAll();
+            }
+        }
+
+        function saveFund() {
+            const id = document.getElementById('editFundId').value || Date.now().toString();
+            const code = document.getElementById('inputCode').value.trim().toUpperCase();
+            const units = parseFloat(document.getElementById('inputUnits').value) || 0;
+            const avgNav = parseFloat(document.getElementById('inputAvgNav').value) || 0;
+            const currentNav = parseFloat(document.getElementById('inputCurrentNav').value) || avgNav;
+            const todayGain = parseFloat(document.getElementById('inputTodayGain').value) || 0;
+            const targetPct = parseFloat(document.getElementById('inputTargetPct').value) || 0;
+
+            if (!code) {
+                alert('กรุณากรอกสัญลักษณ์ Ticker');
+                return;
+            }
+
+            const existingIndex = funds.findIndex(item => item.id === id);
+            const fundData = { id, code, units, avgNav, currentNav, todayGain, targetPct };
+
+            if (existingIndex >= 0) {
+                funds[existingIndex] = fundData;
+            } else {
+                funds.push(fundData);
+            }
+
+            closeFundModal();
+            renderAll();
+            fetchLivePrices();
+        }
+
+        function triggerScanSlip() {
+            const apiKey = localStorage.getItem('dime_gemini_key');
+            if (!apiKey) {
+                alert('กรุณาตั้งค่า Gemini API Key ก่อนใช้งานสแกนภาพ');
+                openApiKeyModal();
+                return;
+            }
+            document.getElementById('slipFileInput').click();
+        }
+
+        async function processSlipImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const apiKey = localStorage.getItem('dime_gemini_key');
+            const loader = document.getElementById('aiLoader');
+            loader.classList.remove('hidden');
+
+            try {
+                const base64Data = await toBase64(file);
+                const cleanBase64 = base64Data.split(',')[1];
+
+                const promptText = "Extract investment port details from this image. Return ONLY a valid JSON array of objects with keys: code (string ticker), units (number), avgNav (number), currentNav (number), targetPct (number). No markdown, no explanation.";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: file.type, data: cleanBase64 } }
+                            ]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsedData = JSON.parse(cleanJsonStr);
+
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    funds = parsedData.map((item, index) => ({
+                        id: Date.now().toString() + index,
+                        code: item.code || 'UNKNOWN',
+                        units: parseFloat(item.units) || 0,
+                        avgNav: parseFloat(item.avgNav) || 0,
+                        currentNav: parseFloat(item.currentNav) || parseFloat(item.avgNav) || 0,
+                        todayGain: 0,
+                        targetPct: parseFloat(item.targetPct) || 0
+                    }));
+                    renderAll();
+                    alert('สแกนภาพและอัปเดตพอร์ตสำเร็จ!');
+                    fetchLivePrices();
+                } else {
+                    alert('ไม่พบข้อมูลพอร์ตในรูปภาพ');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการประมวลผลภาพ');
+            } finally {
+                loader.classList.add('hidden');
+                event.target.value = '';
+            }
+        }
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(funds, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `dime_portfolio_${currentSyncId}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.readAsText(file, 'UTF-8');
+                reader.onload = readerEvent => {
+                    try {
+                        const content = JSON.parse(readerEvent.target.result);
+                        if (Array.isArray(content)) {
+                            funds = content;
+                            renderAll();
+                            alert('นำเข้าข้อมูลสำเร็จ!');
+                            fetchLivePrices();
+                        } else {
+                            alert('รูปแบบไฟล์ไม่ถูกต้อง');
+                        }
+                    } catch (err) {
+                        alert('ไม่สามารถอ่านไฟล์ JSON ได้');
+                    }
+                }
+            };
+            input.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUsdThbRate();
+            loadData();
+            setInterval(fetchLivePrices, 60000);
+        });
+    </script>
+</body>
+</html>
