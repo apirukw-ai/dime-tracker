@@ -371,12 +371,19 @@
         const res = await fetch(proxyUrl);
         const data = await res.json();
 
+        console.log('Yahoo data:', data);
+        
         const results = data?.quoteResponse?.result || [];
         if (results && results.length > 0) {
             results.forEach(quote => {
                 const fund = funds.find(f => f.code && f.code.toUpperCase() === quote.symbol.toUpperCase());
                 if (fund) {
                     if (quote.regularMarketPrice) fund.currentNav = quote.regularMarketPrice;
+                    console.log(
+  'Updated:',
+  quote.symbol,
+  quote.regularMarketPrice
+);
                     if (quote.regularMarketChange) {
                         const units = parseFloat(fund.units) || 0;
                         fund.todayGain = quote.regularMarketChange * units;
