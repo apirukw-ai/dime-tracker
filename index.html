@@ -380,15 +380,8 @@
                 if (fund) {
                     if (quote.regularMarketPrice) {
     fund.currentNav = quote.regularMarketPrice;
-
-    console.log(
-        'Updated:',
-        quote.symbol,
-        quote.regularMarketPrice
-    );
 }
-                    
-                    
+                   
                     if (quote.regularMarketChange) {
                         const units = parseFloat(fund.units) || 0;
                         fund.todayGain = quote.regularMarketChange * units;
