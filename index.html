@@ -371,7 +371,7 @@
         const res = await fetch(proxyUrl);
         const data = await res.json();
 
-        console.log('Yahoo data:', data);
+        console.log('Yahoo error:', data?.finance?.error);
         
         const results = data?.quoteResponse?.result || [];
         if (results && results.length > 0) {
