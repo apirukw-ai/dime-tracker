@@ -387,7 +387,6 @@
                 }
             }
 
-            // อัปเดตเวลา Last Price Update เมื่อดึงข้อมูลราคาสำเร็จ
             if (updatedAny || funds.length > 0) {
                 const priceBadge = document.getElementById('lastPriceUpdateBadge');
                 if (priceBadge) {
@@ -565,6 +564,7 @@
 
             const portfolioValueTHB = totalVal * USD_THB_RATE;
 
+            // 1. Sync ยอดปัจจุบันไปยัง dime_summary/current
             fetch(
                 'https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json',
                 {
@@ -602,6 +602,32 @@
                     '❌ DIME sync failed:',
                     err
                 );
+            });
+
+            // 2. Sync ประวัติพอร์ตรายวันไปยัง dime_history (คีย์ YYYYMMDD)
+            const todayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const todayIso = new Date().toISOString();
+
+            fetch(
+                `https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_history/${todayKey}.json`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        value: portfolioValueTHB,
+                        cost: totalCost * USD_THB_RATE,
+                        gain: (totalVal - totalCost) * USD_THB_RATE,
+                        updatedAt: todayIso
+                    })
+                }
+            )
+            .then(res => {
+                console.log('📊 DIME History synced:', todayKey, 'status:', res.status);
+            })
+            .catch(err => {
+                console.error('❌ DIME History sync failed:', err);
             });
 
             document.getElementById('totalCostDisplay').innerText = `$${formatNum(totalCost)}`;
