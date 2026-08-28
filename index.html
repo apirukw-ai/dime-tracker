@@ -352,7 +352,7 @@
         }
 
         async function fetchLivePrices() {
-            const finnhubKey = localStorage.getItem('da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0') || '';
+            const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
             if (!finnhubKey) return;
 
             for (const fund of funds) {
