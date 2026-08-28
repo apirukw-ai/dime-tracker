@@ -102,14 +102,25 @@
             </div>
 
             <!-- Sync Status Center -->
-            <div class="bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-700 text-xs flex items-center gap-3">
-                <span class="text-slate-300 flex items-center gap-1.5 font-medium">
-                    <i class="fa-solid fa-cloud text-dime"></i> Sync ID: 
-                    <input type="text" id="syncIdInput" value="my-real-dime-port" onchange="changeSyncId()" class="bg-slate-900 border border-slate-700 text-dime font-mono font-bold px-2 py-0.5 rounded outline-none w-32">
-                </span>
-                <span class="text-emerald-400 flex items-center gap-1.5 font-bold border-l border-slate-700 pl-3">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> Finnhub Live
-                </span>
+            <div class="flex flex-col sm:flex-row items-center gap-2">
+                <div class="bg-slate-950/70 px-4 py-2 rounded-xl border border-slate-700 text-xs flex flex-wrap items-center gap-3">
+                    <span class="text-slate-300 flex items-center gap-1.5 font-medium">
+                        <i class="fa-solid fa-cloud text-dime"></i> Sync ID: 
+                        <input type="text" id="syncIdInput" value="my-real-dime-port" onchange="changeSyncId()" class="bg-slate-900 border border-slate-700 text-dime font-mono font-bold px-2 py-0.5 rounded outline-none w-32">
+                    </span>
+                    <span class="text-emerald-400 flex items-center gap-1.5 font-bold border-l border-slate-700 pl-3">
+                        🟢 Finnhub Live
+                    </span>
+                    <span id="syncStatusBadge" class="text-slate-400 border-l border-slate-700 pl-3 font-mono">
+                        Last Sync: --:--:--
+                    </span>
+                </div>
+                <!-- แสดงเวลาอัปเดตราคาสุดท้าย (Last Price Update) -->
+                <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-regular fa-clock text-emerald-400"></i>
+                    <span>Last Price Update:</span>
+                    <span id="lastPriceUpdateBadge" class="font-mono text-emerald-400 font-bold">--:--:--</span>
+                </div>
             </div>
 
             <!-- Action Buttons -->
@@ -355,6 +366,7 @@
             const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
             if (!finnhubKey) return;
 
+            let updatedAny = false;
             for (const fund of funds) {
                 if (!fund.code) continue;
                 try {
@@ -368,11 +380,21 @@
                             fund.todayGain = quote.d * units;
                         }
                         fund.justUpdated = true;
+                        updatedAny = true;
                     }
                 } catch (err) {
                     console.warn(`Finnhub error [${fund.code}]:`, err);
                 }
             }
+
+            // อัปเดตเวลา Last Price Update เมื่อดึงข้อมูลราคาสำเร็จ
+            if (updatedAny || funds.length > 0) {
+                const priceBadge = document.getElementById('lastPriceUpdateBadge');
+                if (priceBadge) {
+                    priceBadge.innerText = new Date().toLocaleTimeString('th-TH');
+                }
+            }
+
             renderAll(true);
         }
 
@@ -557,6 +579,12 @@
                 }
             )
             .then(res => {
+                const currentTime = new Date().toLocaleTimeString('th-TH');
+                const syncBadge = document.getElementById('syncStatusBadge');
+                if (syncBadge) {
+                    syncBadge.innerText = `Last Sync: ${currentTime}`;
+                    syncBadge.className = "text-emerald-400 border-l border-slate-700 pl-3 font-mono font-bold";
+                }
                 console.log(
                     '✅ DIME synced:',
                     portfolioValueTHB,
@@ -565,6 +593,11 @@
                 );
             })
             .catch(err => {
+                const syncBadge = document.getElementById('syncStatusBadge');
+                if (syncBadge) {
+                    syncBadge.innerText = `Sync Failed ❌`;
+                    syncBadge.className = "text-rose-400 border-l border-slate-700 pl-3 font-mono font-bold";
+                }
                 console.error(
                     '❌ DIME sync failed:',
                     err
