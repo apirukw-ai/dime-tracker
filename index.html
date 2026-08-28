@@ -319,18 +319,6 @@
 
         let USD_THB_RATE = 35.25;
 
-        const defaultFunds = [
-            { id: '1', code: 'NVDA', units: 21.11, avgNav: 46.39, currentNav: 214.72, todayGain: -44.96, targetPct: 15.0 },
-            { id: '2', code: 'AVGO', units: 11.25, avgNav: 102.50, currentNav: 368.45, todayGain: 49.74, targetPct: 15.0 },
-            { id: '3', code: 'JPM', units: 8.68, avgNav: 257.70, currentNav: 351.58, todayGain: 0.26, targetPct: 15.0 },
-            { id: '4', code: 'GOOGL', units: 7.85, avgNav: 140.49, currentNav: 344.82, todayGain: 32.59, targetPct: 12.0 },
-            { id: '5', code: 'WMT', units: 21.50, avgNav: 104.19, currentNav: 103.70, todayGain: -3.01, targetPct: 12.0 },
-            { id: '6', code: 'MSFT', units: 4.11, avgNav: 350.73, currentNav: 483.24, todayGain: 8.60, targetPct: 10.0 },
-            { id: '7', code: 'AMZN', units: 6.83, avgNav: 128.44, currentNav: 258.63, todayGain: -10.11, targetPct: 8.0 },
-            { id: '8', code: 'ABBV', units: 6.58, avgNav: 171.57, currentNav: 264.96, todayGain: 20.58, targetPct: 8.0 },
-            { id: '9', code: 'NEE', units: 12.76, avgNav: 77.11, currentNav: 83.65, todayGain: -17.61, targetPct: 5.0 }
-        ];
-
         let funds = [];
         let historyChartInstance = null;
         let profitBarChartInstance = null;
@@ -345,22 +333,22 @@
             return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        async function loadData() {
-            try {
-                const res = await fetch(getDbUrl());
-                const data = await res.json();
-                if (data && Array.isArray(data) && data.length > 0) {
-                    funds = data;
-                } else {
-                    funds = [...defaultFunds];
-                }
-            } catch (err) {
-                console.warn('Firebase error, using default funds:', err);
-                funds = [...defaultFunds];
-            }
-            renderAll();
-            fetchLivePrices();
+async function loadData() {
+    try {
+        const res = await fetch(getDbUrl());
+        const data = await res.json();
+        if (data && Array.isArray(data) && data.length > 0) {
+            funds = data; // ถ้ามีข้อมูลใน Cloud ให้ดึงมาใช้
+        } else {
+            funds = []; // ถ้า Cloud ว่างเปล่า ก็ให้พอร์ตว่างๆ ไปเลย
         }
+    } catch (err) {
+        console.warn('Firebase error:', err);
+        funds = []; // ถ้าต่อเน็ตไม่ได้ หรือ Cloud พัง ก็ให้พอร์ตว่าง
+    }
+    renderAll();
+    fetchLivePrices();
+}
 
         async function fetchLivePrices() {
             const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
@@ -720,7 +708,7 @@
 
             renderProfitBarChart(funds);
             logPortfolioHistory(totalVal, totalCost);
-            saveDataToCloud();
+            
         }
 
         async function saveDataToCloud() {
@@ -794,6 +782,7 @@
             if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
                 funds = funds.filter(item => item.id !== id);
                 renderAll();
+                saveDataToCloud(); // <--- เพิ่มบรรทัดนี้
             }
         }
 
@@ -821,6 +810,7 @@
             }
 
             closeFundModal();
+            saveDataToCloud(); // <--- เพิ่มบรรทัดนี้
             renderAll();
             fetchLivePrices();
         }
@@ -896,6 +886,7 @@ const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').tr
                         targetPct: parseFloat(item.targetPct) || 0
                     }));
                     renderAll();
+                    saveDataToCloud(); // <--- เพิ่มบรรทัดนี้
                     alert('สแกนภาพและอัปเดตพอร์ตสำเร็จ!');
                     fetchLivePrices();
                 } else {
@@ -943,6 +934,7 @@ const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').tr
                         if (Array.isArray(content)) {
                             funds = content;
                             renderAll();
+                            saveDataToCloud(); // <--- เพิ่มบรรทัดนี้
                             alert('นำเข้าข้อมูลสำเร็จ!');
                             fetchLivePrices();
                         } else {
