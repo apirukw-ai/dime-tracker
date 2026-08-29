@@ -22,18 +22,26 @@ print("Funds loaded:")
 
 for fund in funds:
 
-    code = fund.get("code")
+    code = fund["code"]
 
     print("Checking", code)
 
     quote = requests.get(
-        f"https://finnhub.io/api/v1/quote?symbol={code}&token={os.environ['FINNHUB_API_KEY']}"
+        f"https://finnhub.io/api/v1/quote?symbol={code}&token={FINNHUB_API_KEY}"
     ).json()
 
     print(code, quote)
 
     if quote.get("c"):
         fund["currentNav"] = quote["c"]
+
+        print(
+            "Updated:",
+            code,
+            quote["c"]
+        )
+
+# จบ for แล้วค่อย Save ทีเดียว
 
 print("Saving Firebase...")
 
@@ -44,8 +52,5 @@ response = requests.put(
 )
 
 print("SAVE STATUS =", response.status_code)
+
 print("✅ Prices Updated")
-
-print("Saving Firebase...")
-
-response = requests.put(...)
