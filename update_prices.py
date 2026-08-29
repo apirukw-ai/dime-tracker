@@ -6,4 +6,4 @@ for fund in funds:
 
     fund["currentNav"] = quote["c"]
 
-save firebase
+# save firebase
