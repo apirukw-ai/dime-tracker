@@ -9,6 +9,10 @@ print("Loading Firebase...")
 response = requests.get(firebase_url)
 response.raise_for_status()
 
+print("URL =", firebase_url)
+print("STATUS =", response.status_code)
+print("TEXT =", response.text[:500])
+
 funds = response.json()
 
 print("Funds loaded:")
