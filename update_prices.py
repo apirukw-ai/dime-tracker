@@ -21,7 +21,13 @@ funds = response.json()
 print("Funds loaded:")
 
 for fund in funds:
-    print(
-        fund.get("code"),
-        fund.get("currentNav")
-    )
+
+    code = fund.get("code")
+
+    print("Checking", code)
+
+    quote = requests.get(
+        f"https://finnhub.io/api/v1/quote?symbol={code}&token={os.environ['FINNHUB_API_KEY']}"
+    ).json()
+
+    print(code, quote)
