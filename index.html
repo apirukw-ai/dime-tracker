@@ -117,12 +117,14 @@
                         Last Sync: --:--:--
                     </span>
                 </div>
-                <!-- แสดงเวลาอัปเดตราคาสุดท้าย (Last Price Update) -->
-                <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <i class="fa-regular fa-clock text-emerald-400"></i>
-                    <span>Last Price Update:</span>
-                    <span id="lastPriceUpdateBadge" class="font-mono text-emerald-400 font-bold">--:--:--</span>
-                </div>
+<!-- แสดงเวลาอัปเดตราคาสุดท้าย (Last Price Update) -->
+    <div class="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 flex flex-col items-center justify-center min-w-[130px]">
+        <div class="flex items-center gap-1.5 mb-0.5">
+            <i class="fa-regular fa-clock text-emerald-400"></i>
+            <span>Last Price Update</span>
+        </div>
+        <span id="lastPriceUpdateBadge" class="font-mono text-emerald-400 font-bold text-[13px]">--:--:--</span>
+    </div>
             </div>
 
             <!-- Action Buttons -->
