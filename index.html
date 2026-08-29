@@ -242,8 +242,11 @@
 
     </div>
 
-    <!-- Input สำหรับสแกนสลิป -->
+    <!-- Input สำหรับสแกนสลิป (โค้ดเดิมที่มีอยู่แล้ว) -->
     <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="processSlipImage(event)">
+
+    <!-- เพิ่ม Input สำหรับ PDF ตรงนี้ -->
+    <input type="file" id="pdfFileInput" accept="application/pdf" class="hidden" onchange="processDimePdf(event)">
 
     <!-- Gemini Loader Overlay -->
     <div id="aiLoader" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
