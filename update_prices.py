@@ -7,6 +7,8 @@ firebase_url = (
     + "/dime_ports/my-real-dime-port.json"
 )
 
+FINNHUB_API_KEY = os.environ["FINNHUB_API_KEY"]
+
 print("Loading Firebase...")
 print("URL =", firebase_url)
 
