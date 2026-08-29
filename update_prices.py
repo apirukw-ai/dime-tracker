@@ -31,3 +31,21 @@ for fund in funds:
     ).json()
 
     print(code, quote)
+
+    if quote.get("c"):
+        fund["currentNav"] = quote["c"]
+
+print("Saving Firebase...")
+
+response = requests.put(
+    firebase_url,
+    headers={"Content-Type": "application/json"},
+    data=json.dumps(funds)
+)
+
+print("SAVE STATUS =", response.status_code)
+print("✅ Prices Updated")
+
+print("Saving Firebase...")
+
+response = requests.put(...)
