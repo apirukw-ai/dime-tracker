@@ -350,15 +350,9 @@ async function loadData() {
     fetchLivePrices();
 }
 
-async function fetchLivePrices() {
+        async function fetchLivePrices() {
 
-    console.log(
-        "FETCH LIVE PRICES START",
-        new Date().toLocaleTimeString()
-    );
-
-    ...
-}
+            console.log("FETCH LIVE PRICES START");
             const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
             if (!finnhubKey) return;
 
