@@ -132,6 +132,10 @@
                 <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า API Key">
                     <i class="fa-solid fa-key text-yellow-400"></i> API Keys
                 </button>
+                <!-- ปุ่ม Import Confirmation Note -->
+                <button onclick="document.getElementById('confNoteInput').click()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-purple-400 border-purple-500/30 shadow-sm">
+                📄 Import Confirmation Note
+                </button>
                 <!-- ปุ่ม Import PDF -->
                 <button onclick="document.getElementById('pdfFileInput').click()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-400 border-blue-500/30 shadow-sm">
                     <i class="fa-solid fa-file-pdf"></i> Import DIME Confirmation
@@ -243,10 +247,13 @@
         </div>
 
     </div>
-
+        
     <!-- Input สำหรับสแกนสลิป (โค้ดเดิมที่มีอยู่แล้ว) -->
     <input type="file" id="slipFileInput" accept="image/*" class="hidden" onchange="processSlipImage(event)">
 
+    <!-- Hidden Input (นำไปวางใกล้ๆ id="pdfFileInput") -->
+    <input type="file" id="confNoteInput" accept="application/pdf" class="hidden" onchange="processConfirmationNote(event)">
+    
     <!-- เพิ่ม Input สำหรับ PDF ตรงนี้ -->
     <input type="file" id="pdfFileInput" accept="application/pdf" class="hidden" onchange="processDimePdf(event)">
 
@@ -1054,6 +1061,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 event.target.value = ''; 
             }
         }
+    async function processConfirmationNote(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log("PDF Uploaded");
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            fullText += textContent.items.map(item => item.str).join(' ') + ' ';
+        }
+
+        console.log(fullText);
+
+    } catch (err) {
+        console.error("PDF Parsing Error:", err);
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF");
+    } finally {
+        event.target.value = ''; 
+    }
+}
+    
     </script>
 </body>
 </html>
