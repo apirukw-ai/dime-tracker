@@ -82,6 +82,8 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body class="py-6 px-3 sm:px-8">
 
@@ -127,6 +129,10 @@
             <div class="flex flex-wrap gap-2">
                 <button onclick="openApiKeyModal()" class="btn-slate px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5" title="ตั้งค่า API Key">
                     <i class="fa-solid fa-key text-yellow-400"></i> API Keys
+                </button>
+                <!-- ปุ่ม Import PDF -->
+                <button onclick="document.getElementById('pdfFileInput').click()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-blue-400 border-blue-500/30 shadow-sm">
+                    <i class="fa-solid fa-file-pdf"></i> Import DIME Confirmation
                 </button>
                 <button onclick="triggerScanSlip()" class="btn-slate px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm text-dime border-emerald-500/30">
                     <i class="fa-solid fa-wand-magic-sparkles text-dime"></i> สแกนภาพด้วย AI
@@ -961,6 +967,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. ตั้งเวลาอัปเดตเรทค่าเงินทุกๆ 1 ชั่วโมง
     setInterval(fetchUsdThbRate, 3600000); 
 });
+    // ตั้งค่า PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        async function processDimePdf(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const loader = document.getElementById('aiLoader'); 
+            loader.classList.remove('hidden');
+
+            try {
+                // 1. อ่านไฟล์ PDF
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = '';
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    fullText += textContent.items.map(item => item.str).join(' ') + ' ';
+                }
+
+                // 2. ใช้ Regex ดึงข้อมูล (ปรับแก้ Pattern ได้ตามรูปแบบ PDF จริงของ DIME)
+                // สมมติว่าใน PDF มีคำว่า "Ticker: AAPL", "Units: 10.5", "Unit Price: 150.25"
+                const tickerMatch = fullText.match(/(?:Ticker|Symbol)[\s:]+([A-Z]+)/i);
+                const unitsMatch = fullText.match(/Units[\s:]+([\d,.]+)/i);
+                const priceMatch = fullText.match(/Unit Price[\s:]+([\d,.]+)/i);
+                
+                if (!tickerMatch || !unitsMatch || !priceMatch) {
+                     alert("ไม่สามารถแยกข้อมูล Ticker, Units หรือ Unit Price จาก PDF ได้");
+                     return;
+                }
+
+                const ticker = tickerMatch[1].toUpperCase();
+                const newUnits = parseFloat(unitsMatch[1].replace(/,/g, ''));
+                const newPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+
+                // 3. ค้นหา fund.code === ticker
+                const fundIndex = funds.findIndex(f => f.code === ticker);[cite: 5]
+                
+                if (fundIndex >= 0) {
+                    // 4. คำนวณ avgNav ใหม่ (สมการ DCA)
+                    const oldUnits = parseFloat(funds[fundIndex].units) || 0;[cite: 5]
+                    const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;[cite: 5]
+                    
+                    const totalOldCost = oldUnits * oldAvgNav;
+                    const totalNewCost = newUnits * newPrice;
+                    
+                    const updatedUnits = oldUnits + newUnits;
+                    const updatedAvgNav = updatedUnits > 0 ? (totalOldCost + totalNewCost) / updatedUnits : 0;
+
+                    // อัปเดตข้อมูลใน Array
+                    funds[fundIndex].units = updatedUnits;[cite: 5]
+                    funds[fundIndex].avgNav = updatedAvgNav;[cite: 5]
+                    
+                    alert(`อัปเดต ${ticker} สำเร็จ!\nหน่วยใหม่: ${updatedUnits.toFixed(4)}\nต้นทุนเฉลี่ยใหม่: $${updatedAvgNav.toFixed(4)}`);
+                } else {
+                    // หากไม่พบหุ้นนี้ในพอร์ต ให้เพิ่มรายการใหม่
+                    funds.push({
+                        id: Date.now().toString(),
+                        code: ticker,
+                        units: newUnits,
+                        avgNav: newPrice,
+                        currentNav: newPrice,
+                        todayGain: 0,
+                        targetPct: 0
+                    });[cite: 5]
+                    alert(`เพิ่ม ${ticker} เข้าพอร์ตใหม่สำเร็จ!`);
+                }
+
+                // 5. บันทึกลง Firebase และอัปเดตหน้าจอ
+                saveDataToCloud();[cite: 5]
+                renderAll();[cite: 5]
+                fetchLivePrices();[cite: 5]
+
+            } catch (err) {
+                console.error("PDF Parsing Error:", err);
+                alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF");
+            } finally {
+                loader.classList.add('hidden');[cite: 5]
+                event.target.value = ''; 
+            }
+        }
     </script>
 </body>
 </html>
