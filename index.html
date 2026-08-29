@@ -350,7 +350,15 @@ async function loadData() {
     fetchLivePrices();
 }
 
-        async function fetchLivePrices() {
+async function fetchLivePrices() {
+
+    console.log(
+        "FETCH LIVE PRICES START",
+        new Date().toLocaleTimeString()
+    );
+
+    ...
+}
             const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
             if (!finnhubKey) return;
 
@@ -360,8 +368,19 @@ async function loadData() {
                 try {
                     const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fund.code.trim().toUpperCase())}&token=${finnhubKey}`);
                     const quote = await res.json();
+                    console.log("QUOTE", fund.code, quote);
                     
                     if (quote && quote.c) {
+
+    console.log(
+      "UPDATING",
+      fund.code,
+      quote.c
+    );
+
+    fund.currentNav = quote.c;
+}
+                        
                         fund.currentNav = quote.c;
                         if (quote.d !== undefined) {
                             const units = parseFloat(fund.units) || 0;
