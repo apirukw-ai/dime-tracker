@@ -2,8 +2,8 @@ import json
 import os
 import requests
 
-DB_URL = os.environ["https://my-dime-port-default-rtdb.asia-southeast1.firebasedatabase.app"]
-FINNHUB_API_KEY = os.environ["da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0"]
+DB_URL = os.environ["FIREBASE_DB_URL"]
+FINNHUB_API_KEY = os.environ["FINNHUB_API_KEY"]
 
 url = f"{DB_URL}/dime_ports/my-real-dime-port.json"
 
