@@ -233,8 +233,8 @@
                     <tr>
                         <th>สัญลักษณ์</th>
                         <th class="text-right">จำนวนหุ้น</th>
-                        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
                         <th class="text-right">ราคาปัจจุบัน ($)</th>
+                        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
                         <th class="text-right">ต้นทุน ($)</th>
                         <th class="text-right">มูลค่าตลาด ($)</th>
                         <th class="text-right">กำไรสะสม ($)</th>
@@ -542,21 +542,21 @@ async function loadData() {
             if (!tbody || !allocTbody) return;
 
             const thead = tbody.parentElement.querySelector('thead');
-            if (thead) {
-                thead.innerHTML = `
-                    <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
-                        <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
-                        <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
-                        <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
-                        <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
-                        <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
-                        <th onclick="handleSort('marketVal')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('marketVal')}</th>
-                        <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
-                        <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
-                        <th class="py-3 px-4 text-center">จัดการ</th>
-                    </tr>
-            `;
-        }
+if (thead) {
+    thead.innerHTML = `
+        <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
+            <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
+            <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
+            <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
+            <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
+            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
+            <th onclick="handleSort('marketVal')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('marketVal')}</th>
+            <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
+            <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
+            <th class="py-3 px-4 text-center">จัดการ</th>
+        </tr>
+    `;
+}
       
          
             // สั่งเรียงลำดับข้อมูลก่อนนำไป Render ตาราง
@@ -617,27 +617,34 @@ async function loadData() {
                 const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
                 
                 tbody.innerHTML += `
-                    <tr class="${flashClass}">
-                        <td class="font-bold text-white">${f.code}</td>
-                        <td class="text-right font-mono">${formatNum(units)}</td>
-                        <td class="text-right font-mono">$${formatNum(avgNav)}</td>
-                        <td class="text-right font-mono text-emerald-400 font-bold">$${formatNum(currentNav)}</td>
-                        <td class="text-right font-mono">$${formatNum(cost)}</td>
-                        <td class="text-right font-mono font-bold">$${formatNum(marketVal)}</td>
-                        <td class="text-right font-mono ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${profit >= 0 ? '+' : ''}$${formatNum(profit)} <br>
-                            <span class="text-[10px]">(${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)</span>
-                        </td>
-                        <td class="text-right font-mono ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)} <br>
-                            <span class="text-[10px]">(${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)</span>
-                        </td>
-                        <td class="text-center">
-                            <button onclick="editFund('${f.id}')" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteFund('${f.id}')" class="text-slate-400 hover:text-rose-400 px-1.5"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
+    <tr class="${flashClass}">
+        <td class="font-bold text-white">${f.code}</td>
+
+        <!-- 1. จำนวนหุ้น (ทศนิยม 7 ตำแหน่ง) -->
+        <td class="text-right font-mono">${units.toFixed(7)}</td>
+
+        <!-- 3. สลับเอา "ราคาปัจจุบัน" ขึ้นมาก่อน -->
+        <td class="text-right font-mono text-emerald-400 font-bold">$${formatNum(currentNav)}</td>
+
+        <!-- 2. "ต้นทุนเฉลี่ย" ย้ายมาตรงนี้ (ทศนิยม 4 ตำแหน่ง) -->
+        <td class="text-right font-mono">$${avgNav.toFixed(4)}</td>
+
+        <td class="text-right font-mono">$${formatNum(cost)}</td>
+        <td class="text-right font-mono font-bold">$${formatNum(marketVal)}</td>
+        <td class="text-right font-mono ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+            ${profit >= 0 ? '+' : ''}$${formatNum(profit)} <br>
+            <span class="text-[10px]">(${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)</span>
+        </td>
+        <td class="text-right font-mono ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+            ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)} <br>
+            <span class="text-[10px]">(${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)</span>
+        </td>
+        <td class="text-center">
+            <button onclick="editFund('${f.id}')" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteFund('${f.id}')" class="text-slate-400 hover:text-rose-400 px-1.5"><i class="fa-solid fa-trash"></i></button>
+        </td>
+    </tr>
+`;
             });
 
             const totalProfit = totalVal - totalCost;
