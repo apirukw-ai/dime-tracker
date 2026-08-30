@@ -230,18 +230,18 @@
             </div>
             <table>
                 <thead>
-                    <tr>
-                        <th>สัญลักษณ์</th>
-                        <th class="text-right">จำนวนหุ้น</th>
-                        <th class="text-right">ราคาปัจจุบัน ($)</th>
-                        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
-                        <th class="text-right">ต้นทุน ($)</th>
-                        <th class="text-right">มูลค่าตลาด ($)</th>
-                        <th class="text-right">กำไรสะสม ($)</th>
-                        <th class="text-right">กำไรวันนี้ ($)</th>
-                        <th class="text-center">จัดการ</th>
-                    </tr>
-                </thead>
+    <tr>
+        <th>สัญลักษณ์</th>
+        <th class="text-right">จำนวนหุ้น</th>
+        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
+        <th class="text-right">ต้นทุน ($)</th>
+        <th class="text-right">ราคาปัจจุบัน ($)</th>
+        <th class="text-right">มูลค่าตลาด ($)</th>
+        <th class="text-right">กำไรสะสม ($)</th>
+        <th class="text-right">กำไรวันนี้ ($)</th>
+        <th class="text-center">จัดการ</th>
+    </tr>
+</thead>
                 <tbody id="fundTableBody" class="text-xs font-medium"></tbody>
             </table>
         </div>
@@ -547,9 +547,9 @@ if (thead) {
         <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
             <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
             <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
-            <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
             <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
             <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
+            <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
             <th onclick="handleSort('marketVal')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('marketVal')}</th>
             <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
             <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
@@ -619,17 +619,15 @@ if (thead) {
                 tbody.innerHTML += `
     <tr class="${flashClass}">
         <td class="font-bold text-white">${f.code}</td>
-
         <!-- 1. จำนวนหุ้น (ทศนิยม 7 ตำแหน่ง) -->
         <td class="text-right font-mono">${units.toFixed(7)}</td>
-
-        <!-- 3. สลับเอา "ราคาปัจจุบัน" ขึ้นมาก่อน -->
-        <td class="text-right font-mono text-emerald-400 font-bold">$${formatNum(currentNav)}</td>
-
-        <!-- 2. "ต้นทุนเฉลี่ย" ย้ายมาตรงนี้ (ทศนิยม 4 ตำแหน่ง) -->
+        <!-- 2. ต้นทุนเฉลี่ย (ทศนิยม 4 ตำแหน่ง) -->
         <td class="text-right font-mono">$${avgNav.toFixed(4)}</td>
-
+        <!-- 3. ต้นทุน ($) -->
         <td class="text-right font-mono">$${formatNum(cost)}</td>
+        <!-- 4. ราคาปัจจุบัน ($) -->
+        <td class="text-right font-mono text-emerald-400 font-bold">$${formatNum(currentNav)}</td>
+        <!-- 5. มูลค่าตลาด ($) -->
         <td class="text-right font-mono font-bold">$${formatNum(marketVal)}</td>
         <td class="text-right font-mono ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
             ${profit >= 0 ? '+' : ''}$${formatNum(profit)} <br>
@@ -662,25 +660,25 @@ if (thead) {
             }
 
             tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-xs font-mono whitespace-nowrap";
-            tfoot.innerHTML = `
-                <tr>
-                    <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
-                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
-                    <td class="py-3.5 px-4 text-right text-slate-200">$${formatNum(totalCost)}</td>
-                    <td class="py-3.5 px-4 text-right text-white font-bold">$${formatNum(totalVal)}</td>
-                    <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                        ${totalProfit >= 0 ? '+' : ''}$${formatNum(totalProfit)}<br>
-                        <span class="text-[10px]">(${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)</span>
-                    </td>
-                    <td class="py-3.5 px-4 text-right ${totalDailyGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                        ${totalDailyGain >= 0 ? '+' : ''}$${formatNum(totalDailyGain)}<br>
-                        <span class="text-[10px]">(${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)</span>
-                    </td>
-                    <td class="py-3.5 px-4 text-center"></td>
-                </tr>
-            `;
+tfoot.innerHTML = `
+    <tr>
+        <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
+        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+        <td class="py-3.5 px-4 text-right text-slate-200">$${formatNum(totalCost)}</td>
+        <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+        <td class="py-3.5 px-4 text-right text-white font-bold">$${formatNum(totalVal)}</td>
+        <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+            ${totalProfit >= 0 ? '+' : ''}$${formatNum(totalProfit)}<br>
+            <span class="text-[10px]">(${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)</span>
+        </td>
+        <td class="py-3.5 px-4 text-right ${totalDailyGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+            ${totalDailyGain >= 0 ? '+' : ''}$${formatNum(totalDailyGain)}<br>
+            <span class="text-[10px]">(${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)</span>
+        </td>
+        <td class="py-3.5 px-4 text-center"></td>
+    </tr>
+`;
             
             document.getElementById('totalValDisplay').innerText = `$${formatNum(totalVal)}`;
             document.getElementById('totalValThbDisplay').innerText = `฿${formatNum(totalVal * USD_THB_RATE)} THB`;
