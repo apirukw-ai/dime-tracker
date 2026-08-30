@@ -337,6 +337,25 @@
 
         let USD_THB_RATE = 35.25;
 
+        // ตัวแปรสำหรับจำคอลัมน์และทิศทางการเรียงลำดับ
+        let currentSortCol = null;
+        let currentSortDir = 'asc';
+
+        function handleSort(colKey) {
+            if (currentSortCol === colKey) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortCol = colKey;
+                currentSortDir = 'asc';
+            }
+            renderAll();
+        }
+
+        function getSortIcon(colKey) {
+            if (currentSortCol !== colKey) return '<span class="text-slate-600 ml-1">⇅</span>';
+            return currentSortDir === 'asc' ? '<span class="text-emerald-400 ml-1">▲</span>' : '<span class="text-emerald-400 ml-1">▼</span>';
+        }
+        
         let funds = [];
         let historyChartInstance = null;
         let profitBarChartInstance = null;
@@ -522,6 +541,59 @@ async function loadData() {
             const allocTbody = document.getElementById('allocTableBody');
             if (!tbody || !allocTbody) return;
 
+            const thead = tbody.parentElement.querySelector('thead');
+            if (thead) {
+                thead.innerHTML = `
+                    <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
+                        <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
+                        <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
+                        <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
+                        <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
+                        <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
+                        <th onclick="handleSort('marketVal')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('marketVal')}</th>
+                        <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
+                        <th onclick="handleSort('todayGain')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรวันนี้ ($) ${getSortIcon('todayGain')}</th>
+                        <th class="py-3 px-4 text-center">จัดการ</th>
+                    </tr>
+            `;
+        }
+      
+         
+            // สั่งเรียงลำดับข้อมูลก่อนนำไป Render ตาราง
+            if (currentSortCol && funds.length > 0) {
+                funds.sort((a, b) => {
+                    const getVal = (item, key) => {
+                        const u = parseFloat(item.units) || 0;
+                        const avg = parseFloat(item.avgNav) || 0;
+                        const cur = parseFloat(item.currentNav) || avg;
+                        const cost = u * avg;
+                        const val = u * cur;
+                        const profit = val - cost;
+                        const today = parseFloat(item.todayGain) || 0;
+
+                        switch(key) {
+                            case 'code': return (item.code || '').toUpperCase();
+                            case 'units': return u;
+                            case 'avgNav': return avg;
+                            case 'currentNav': return cur;
+                            case 'cost': return cost;
+                            case 'marketVal': return val;
+                            case 'profit': return profit;
+                            case 'todayGain': return today;
+                            default: return 0;
+                        }
+                    };
+
+                    const valA = getVal(a, currentSortCol);
+                    const valB = getVal(b, currentSortCol);
+
+                    if (typeof valA === 'string') {
+                        return currentSortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    }
+                    return currentSortDir === 'asc' ? valA - valB : valB - valA;
+                });
+            }
+            
             tbody.innerHTML = '';
 
             funds.forEach(f => {
@@ -568,6 +640,37 @@ async function loadData() {
             const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
             const dailyProfitPct = totalVal > 0 ? (totalDailyGain / totalVal) * 100 : 0;
 
+            // ----------------------------------------------------
+            // เพิ่มแถบสรุป "รวมทั้งหมด" (tfoot)
+            // ----------------------------------------------------
+            let tfoot = document.getElementById('fundTableFoot');
+            if (!tfoot) {
+                tfoot = document.createElement('tfoot');
+                tfoot.id = 'fundTableFoot';
+                tbody.parentElement.appendChild(tfoot);
+            }
+
+            tfoot.className = "bg-slate-800/90 font-bold border-t-2 border-slate-600 text-xs font-mono whitespace-nowrap";
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="py-3.5 px-4 text-left text-slate-200 font-sans font-bold">รวมทั้งหมด</td>
+                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                    <td class="py-3.5 px-4 text-right text-slate-500">-</td>
+                    <td class="py-3.5 px-4 text-right text-slate-200">$${formatNum(totalCost)}</td>
+                    <td class="py-3.5 px-4 text-right text-white font-bold">$${formatNum(totalVal)}</td>
+                    <td class="py-3.5 px-4 text-right ${totalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${totalProfit >= 0 ? '+' : ''}$${formatNum(totalProfit)}<br>
+                        <span class="text-[10px]">(${totalProfitPct >= 0 ? '+' : ''}${totalProfitPct.toFixed(2)}%)</span>
+                    </td>
+                    <td class="py-3.5 px-4 text-right ${totalDailyGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${totalDailyGain >= 0 ? '+' : ''}$${formatNum(totalDailyGain)}<br>
+                        <span class="text-[10px]">(${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}%)</span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center"></td>
+                </tr>
+            `;
+            
             document.getElementById('totalValDisplay').innerText = `$${formatNum(totalVal)}`;
             document.getElementById('totalValThbDisplay').innerText = `฿${formatNum(totalVal * USD_THB_RATE)} THB`;
 
