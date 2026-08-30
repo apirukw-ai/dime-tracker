@@ -613,6 +613,9 @@ async function loadData() {
                 const flashClass = (isLiveUpdate && f.justUpdated) ? 'flash-updated' : '';
                 if (f.justUpdated) f.justUpdated = false;
 
+                const prevVal = marketVal - todayGain;
+                const todayGainPct = prevVal > 0 ? (todayGain / prevVal) * 100 : 0;
+                
                 tbody.innerHTML += `
                     <tr class="${flashClass}">
                         <td class="font-bold text-white">${f.code}</td>
@@ -626,7 +629,8 @@ async function loadData() {
                             <span class="text-[10px]">(${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%)</span>
                         </td>
                         <td class="text-right font-mono ${todayGain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)}
+                            ${todayGain >= 0 ? '+' : ''}$${formatNum(todayGain)} <br>
+                            <span class="text-[10px]">(${todayGainPct >= 0 ? '+' : ''}${todayGainPct.toFixed(2)}%)</span>
                         </td>
                         <td class="text-center">
                             <button onclick="editFund('${f.id}')" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-pen"></i></button>
