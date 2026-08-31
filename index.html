@@ -157,7 +157,7 @@
                 <p id="totalValThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
             </div>
             <div class="card-slate p-5">
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ต้นทุน</p>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">ต้นทุนรวม</p>
                 <h2 id="totalCostDisplay" class="text-2xl font-extrabold text-white">$0.00</h2>
                 <p id="totalCostThbDisplay" class="text-xs text-slate-400 mt-1 font-bold">฿0.00 THB</p>
             </div>
@@ -194,7 +194,7 @@
             </div>
             <div class="card-slate p-5">
                 <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                    <span>📊</span> เปรียบเทียบกำไรรายหุ้น ($)
+                    <span>📊</span> กำไรรายหุ้น ($)
                 </h3>
                 <div class="h-60 relative">
                     <canvas id="profitBarChart"></canvas>
@@ -233,8 +233,8 @@
     <tr>
         <th>สัญลักษณ์</th>
         <th class="text-right">จำนวนหุ้น</th>
-        <th class="text-right">ต้นทุนเฉลี่ย ($)</th>
-        <th class="text-right">ต้นทุน ($)</th>
+        <th class="text-right">ต้นทุนต่อหุ้น ($)</th>
+        <th class="text-right">ต้นทุนรวม ($)</th>
         <th class="text-right">ราคาปัจจุบัน ($)</th>
         <th class="text-right">มูลค่าตลาด ($)</th>
         <th class="text-right">กำไรสะสม ($)</th>
@@ -301,7 +301,7 @@
                         <input type="number" step="0.0001" id="inputUnits" placeholder="0.0000" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
                     </div>
                     <div>
-                        <label class="text-slate-300 font-semibold">ราคาต้นทุนเฉลี่ย ($)</label>
+                        <label class="text-slate-300 font-semibold">ต้นทุนต่อหุ้น ($)</label>
                         <input type="number" step="0.0001" id="inputAvgNav" placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white mt-1 focus:border-emerald-400 outline-none">
                     </div>
                 </div>
@@ -547,8 +547,8 @@ if (thead) {
         <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider whitespace-nowrap select-none">
             <th onclick="handleSort('code')" class="py-3 px-4 text-left cursor-pointer hover:text-white transition">สัญลักษณ์ ${getSortIcon('code')}</th>
             <th onclick="handleSort('units')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">จำนวนหุ้น ${getSortIcon('units')}</th>
-            <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนเฉลี่ย ($) ${getSortIcon('avgNav')}</th>
-            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุน ($) ${getSortIcon('cost')}</th>
+            <th onclick="handleSort('avgNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนต่อหุ้น ($) ${getSortIcon('avgNav')}</th>
+            <th onclick="handleSort('cost')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ต้นทุนรวม ($) ${getSortIcon('cost')}</th>
             <th onclick="handleSort('currentNav')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">ราคาปัจจุบัน ($) ${getSortIcon('currentNav')}</th>
             <th onclick="handleSort('marketVal')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">มูลค่าตลาด ($) ${getSortIcon('marketVal')}</th>
             <th onclick="handleSort('profit')" class="py-3 px-4 text-right cursor-pointer hover:text-white transition">กำไรสะสม ($) ${getSortIcon('profit')}</th>
