@@ -361,31 +361,56 @@
         let profitBarChartInstance = null;
 
         function changeSyncId() {
-            currentSyncId = document.getElementById('syncIdInput').value.trim() || 'my-real-dime-port';
-            localStorage.setItem('dime_sync_id', currentSyncId);
-            loadData();
-        }
+    const input = document.getElementById('syncIdInput');
+    if (input) {
+        currentSyncId = input.value.trim() || 'my-real-dime-port';
+        localStorage.setItem('dime_sync_id', currentSyncId);
+        
+        loadData();
+    } // <-- ปิดปีกกาอันที่ 1: สำหรับปิดเงื่อนไข if (input) {
+}     // <-- ปิดปีกกาอันที่ 2: สำหรับปิดฟังก์ชัน changeSyncId() {
 
         function formatNum(num) {
             return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
 async function loadData() {
+    // กำหนด Key สำหรับ Emergency Cache ของ Sync ID ปัจจุบัน
+    const LOCAL_CACHE_KEY = `dime_cache_${currentSyncId}`;
+
     try {
+        // 1. ดึงข้อมูลจาก Cloud (Source of Truth)
         const res = await fetch(getDbUrl());
+        if (!res.ok) throw new Error('Network response was not ok');
+        
         const data = await res.json();
+        
         if (data && Array.isArray(data) && data.length > 0) {
-            funds = data; // ถ้ามีข้อมูลใน Cloud ให้ดึงมาใช้
+            funds = data;
+            // เซฟลง Emergency Cache สำรองไว้
+            localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(funds));
+            console.log('☁️ Loaded from Cloud (Source of Truth)');
         } else {
-            funds = []; // ถ้า Cloud ว่างเปล่า ก็ให้พอร์ตว่างๆ ไปเลย
+            funds = [];
+            localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(funds));
         }
     } catch (err) {
-        console.warn('Firebase error:', err);
-        funds = []; // ถ้าต่อเน็ตไม่ได้ หรือ Cloud พัง ก็ให้พอร์ตว่าง
+        // 2. ถ้าเน็ตมีปัญหา/Cloud พัง ดึงจาก Emergency Cache
+        console.warn('⚠️ Cloud unreachable, switching to Emergency Cache:', err);
+        const cachedData = localStorage.getItem(LOCAL_CACHE_KEY);
+        
+        if (cachedData) {
+            funds = JSON.parse(cachedData);
+            console.log('📦 Loaded from LocalStorage (Emergency Cache)');
+        } else {
+            funds = [];
+        }
     }
+
     renderAll();
     fetchLivePrices();
 }
+
 
         async function fetchLivePrices() {
             const finnhubKey = localStorage.getItem('dime_finnhub_key') || 'da22fjpr01qp0a26e6ugda22fjpr01qp0a26e6v0';
@@ -847,16 +872,25 @@ tfoot.innerHTML = `
         }
 
         async function saveDataToCloud() {
-            try {
-                await fetch(getDbUrl(), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(funds)
-                });
-            } catch (err) {
-                console.error('Cloud save error:', err);
-            }
+    const LOCAL_CACHE_KEY = `dime_cache_${currentSyncId}`;
+
+    // 1. เซฟลง LocalStorage ทันทีเป็น Emergency Cache
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(funds));
+
+    // 2. ยิงอัปเดตไปที่ Cloud (Source of Truth)
+    try {
+        const res = await fetch(getDbUrl(), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(funds)
+        });
+        if (res.ok) {
+            console.log('☁️ Synced successfully to Cloud');
         }
+    } catch (err) {
+        console.error('❌ Cloud Save Failed (Saved to Local Cache only):', err);
+    }
+}
 
         function openApiKeyModal() {
             document.getElementById('inputGeminiKey').value = localStorage.getItem('dime_gemini_key') || '';
