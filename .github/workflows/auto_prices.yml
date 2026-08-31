@@ -3,8 +3,8 @@ name: Auto Update Prices
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
-
+  # รันทุก 30 นาที ตั้งแต่ 13:00 - 22:00 UTC (เท่ากับ 20:00 - 05:00 น. เวลาไทย) วันจันทร์ - ศุกร์
+  - cron: '*/30 13-22 * * 1-5'
 jobs:
   update:
     runs-on: ubuntu-latest
