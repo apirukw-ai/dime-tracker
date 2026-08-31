@@ -820,7 +820,11 @@ tfoot.innerHTML = `
             document.getElementById('dailyProfitSub').innerText = `${dailyProfitPct >= 0 ? '+' : ''}${dailyProfitPct.toFixed(2)}% วันนี้`;
 
             allocTbody.innerHTML = '';
-            funds.forEach(f => {
+
+            // คัดลอกและเรียงลำดับตาม targetPct จากมากไปน้อยก่อนวนลูป
+            const sortedAllocFunds = [...funds].sort((a, b) => (parseFloat(b.targetPct) || 0) - (parseFloat(a.targetPct) || 0));
+
+            sortedAllocFunds.forEach(f => {
                 const marketVal = (parseFloat(f.units) || 0) * (parseFloat(f.currentNav) || 0);
                 const currentPct = totalVal > 0 ? (marketVal / totalVal) * 100 : 0;
                 const targetPct = parseFloat(f.targetPct) || 0;
