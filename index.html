@@ -893,27 +893,28 @@ tfoot.innerHTML = `
 }
 
         function openApiKeyModal() {
-            document.getElementById('inputGeminiKey').value = localStorage.getItem('dime_gemini_key') || '';
-            document.getElementById('inputFinnhubKey').value = localStorage.getItem('dime_finnhub_key') || '';
-            const modal = document.getElementById('apiKeyModal');
-            modal.classList.remove('hidden');
-        }
+    document.getElementById('inputGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+    document.getElementById('inputFinnhubKey').value = localStorage.getItem('finnhub_api_key') || '';
+    const modal = document.getElementById('apiKeyModal');
+    if (modal) modal.classList.remove('hidden');
+}
 
-        function closeApiKeyModal() {
-            const modal = document.getElementById('apiKeyModal');
-            modal.classList.add('hidden');
-        }
+function closeApiKeyModal() {
+    const modal = document.getElementById('apiKeyModal');
+    if (modal) modal.classList.add('hidden');
+}
 
-        function saveApiKey() {
-            const geminiKey = document.getElementById('inputGeminiKey').value.trim();
-            const finnhubKey = document.getElementById('inputFinnhubKey').value.trim();
-            localStorage.setItem('dime_gemini_key', geminiKey);
-            localStorage.setItem('dime_finnhub_key', finnhubKey);
-            closeApiKeyModal();
-            alert('บันทึก API Keys เรียบร้อยแล้ว!');
-            fetchLivePrices();
-        }
-
+function saveApiKey() {
+    const geminiKey = document.getElementById('inputGeminiKey').value.trim();
+    const finnhubKey = document.getElementById('inputFinnhubKey').value.trim();
+    
+    localStorage.setItem('gemini_api_key', geminiKey);
+    localStorage.setItem('finnhub_api_key', finnhubKey);
+    
+    closeApiKeyModal();
+    alert('บันทึก API Keys เรียบร้อยแล้ว!');
+    if (typeof fetchLivePrices === 'function') fetchLivePrices();
+}
         function openFundModal() {
             document.getElementById('editFundId').value = '';
             document.getElementById('inputCode').value = '';
