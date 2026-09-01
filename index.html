@@ -1226,8 +1226,19 @@ async function processConfirmationNote(event) {
     if (loader) loader.classList.remove('hidden');
 
     try {
-        // 1. อ่านข้อความทั้งหมดจากไฟล์ PDF
         const arrayBuffer = await file.arrayBuffer();
+
+        // 1. สร้าง SHA-256 Fingerprint เพื่อเช็กไฟล์ซ้ำ
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const fileHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        let processedHashes = JSON.parse(localStorage.getItem('processed_pdf_hashes') || '[]');
+        if (processedHashes.includes(fileHash)) {
+            alert("⚠️ เอกสารใบนี้เคยถูกนำเข้าพอร์ตไปแล้วครับ ระบบได้ยกเลิกการเพิ่มข้อมูลซ้ำให้เรียบร้อย");
+            return;
+        }
+
+        // 2. ดึงข้อความทั้งหมดจากไฟล์ PDF
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = "";
 
@@ -1237,19 +1248,18 @@ async function processConfirmationNote(event) {
             fullText += textContent.items.map(item => item.str).join(' ') + ' ';
         }
 
-        // ตรวจสอบว่า PDF มีตัวอักษรให้ดึงหรือไม่
         if (!fullText.trim()) {
-            throw new Error("ไม่สามารถอ่านข้อความจากไฟล์ PDF นี้ได้ (เอกสารอาจเป็นไฟล์สแกนรูปภาพ ให้ใช้ปุ่มสแกนภาพ AI แทน)");
+            throw new Error("ไม่สามารถอ่านข้อความจากไฟล์ PDF นี้ได้ (เอกสารอาจเป็นไฟล์สแกนรูปภาพ)");
         }
 
-        // 2. ตรวจสอบ Gemini API Key
+        // 3. ตรวจสอบ Gemini API Key
         const apiKey = localStorage.getItem('gemini_api_key');
         if (!apiKey) {
             alert("กรุณากรอกและบันทึก Gemini API Key ในเมนูก่อนใช้งานครับ");
             return;
         }
 
-        // 3. ส่งข้อความให้ Gemini AI ประมวลผล
+        // 4. ส่งข้อความให้ Gemini AI ประมวลผล
         const prompt = `จากข้อความในสลิป/ใบยืนยันการซื้อขายหุ้นต่อไปนี้ ช่วยสกัดข้อมูลรายการซื้อขายหุ้นทั้งหมดให้อยู่ในรูปแบบ JSON Array เท่านั้น:
 [{"code": "ชื่อหุ้น เช่น GOOGL", "units": จำนวนหุ้น(เลขทศนิยม), "price": ราคาต่อหุ้นUSD(เลขทศนิยม)}]
 
@@ -1265,7 +1275,6 @@ ${fullText}`;
             })
         });
 
-        // ดักจับ Error ตรงจาก Google API (เช่น 400 Invalid Key, 429 Quota Exceeded)
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             throw new Error(`Gemini API Error (${response.status}): ${errData.error?.message || response.statusText}`);
@@ -1278,12 +1287,11 @@ ${fullText}`;
             throw new Error("Gemini AI ไม่สามารถสกัดข้อมูลรายการซื้อขายได้");
         }
 
-        // ลบ Markdown formatting หาก AI ตอบกลับติดครอบแบบ ```json
         resultText = resultText.replace(/```json|```/g, '').trim();
         const items = JSON.parse(resultText);
         let summaryMsg = [];
 
-        // 4. คำนวณ DCA และอัปเดตข้อมูลเข้าพอร์ต
+        // 5. คำนวณ DCA และอัปเดตข้อมูลเข้าพอร์ต
         items.forEach(item => {
             const ticker = item.code ? item.code.toUpperCase() : null;
             const newUnits = parseFloat(item.units);
@@ -1325,6 +1333,10 @@ ${fullText}`;
             alert("ไม่พบข้อมูลรายการซื้อขายที่สมบูรณ์ในเอกสารนี้");
             return;
         }
+
+        // 6. บันทึก Fingerprint ของไฟล์นี้ลง localStorage เพื่อป้องกันการสแกนซ้ำในอนาคต
+        processedHashes.push(fileHash);
+        localStorage.setItem('processed_pdf_hashes', JSON.stringify(processedHashes));
 
         if (typeof saveDataToCloud === 'function') saveDataToCloud();
         if (typeof renderAll === 'function') renderAll();
