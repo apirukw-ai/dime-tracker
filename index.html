@@ -1152,8 +1152,7 @@ async function processDimePdf(event) {
             fullText += textContent.items.map(item => item.str).join(' ') + ' ';
         }
 
-        // 2. ใช้ Regex ตรวจจับตารางการซื้อขายของ Dime (รองรับหลายรายการในใบเดียว)
-        // รูปแบบข้อความใน Dime PDF: BUY GOOGL [XNAS] 0.0591073 337.86 USD
+        // 2. ใช้ Regex ตรวจจับตารางการซื้อขายของ Dime
         const regex = /(BUY|SELL)\s+([A-Z]+)\s+\[[A-Z]+\]\s+([\d,.]+)\s+([\d,.]+)/g;
         let matches = [...fullText.matchAll(regex)];
 
@@ -1164,19 +1163,18 @@ async function processDimePdf(event) {
 
         let updatedSummary = [];
 
-        // 3. วนลูปประมวลผลหุ้นทุกตัวที่พบใน PDF
+        // 3. วนลูปประมวลผลหุ้นทุกตัวที่พบใน PDF (คิดราคาทุน DCA)
         for (const match of matches) {
-            const type = match[1];            // BUY หรือ SELL
-            const ticker = match[2];          // เช่น GOOGL, AMZN
-            const newUnits = parseFloat(match[3].replace(/,/g, '')); // จำนวนหุ้น
-            const newPrice = parseFloat(match[4].replace(/,/g, '')); // ราคาต่อหุ้น
+            const type = match[1];            
+            const ticker = match[2];          
+            const newUnits = parseFloat(match[3].replace(/,/g, '')); 
+            const newPrice = parseFloat(match[4].replace(/,/g, '')); 
 
-            if (type !== 'BUY') continue; // ประมวลผลเฉพาะฝั่งซื้อ (BUY)
+            if (type !== 'BUY') continue; 
 
             const fundIndex = funds.findIndex(f => f.code === ticker);
 
             if (fundIndex >= 0) {
-                // คำนวณราคาเฉลี่ยใหม่ (DCA)
                 const oldUnits = parseFloat(funds[fundIndex].units) || 0;
                 const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;
 
@@ -1191,7 +1189,6 @@ async function processDimePdf(event) {
 
                 updatedSummary.push(`${ticker}: +${newUnits} หุ้น (รวม ${updatedUnits.toFixed(4)} หุ้น | ทุนเฉลี่ย $${updatedAvgNav.toFixed(2)})`);
             } else {
-                // เพิ่มหุ้นใหม่เข้าพอร์ต
                 funds.push({
                     id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
                     code: ticker,
@@ -1205,7 +1202,7 @@ async function processDimePdf(event) {
             }
         }
 
-        // 4. บันทึกและอัปเดตแสดงผล
+        // 4. บันทึกลง Cloud และอัปเดตแสดงผลหน้าเว็บ
         if (typeof saveDataToCloud === 'function') saveDataToCloud();
         if (typeof renderAll === 'function') renderAll();
         if (typeof fetchLivePrices === 'function') fetchLivePrices();
