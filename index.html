@@ -1131,94 +1131,104 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(fetchUsdThbRate, 3600000); 
 });
 // ตั้งค่า PDF.js Worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        async function processDimePdf(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+async function processDimePdf(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-            const loader = document.getElementById('aiLoader'); 
-            loader.classList.remove('hidden');
+    const loader = document.getElementById('aiLoader'); 
+    if (loader) loader.classList.remove('hidden');
 
-            try {
-                // 1. อ่านไฟล์ PDF
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let fullText = '';
+    try {
+        // 1. อ่านข้อความทั้งหมดจากไฟล์ PDF
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
 
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    fullText += textContent.items.map(item => item.str).join(' ') + ' ';
-                }
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            fullText += textContent.items.map(item => item.str).join(' ') + ' ';
+        }
 
-                // 2. ใช้ Regex ดึงข้อมูล 
-                const tickerMatch = fullText.match(/(?:Ticker|Symbol)[\s:]+([A-Z]+)/i);
-                const unitsMatch = fullText.match(/Units[\s:]+([\d,.]+)/i);
-                const priceMatch = fullText.match(/Unit Price[\s:]+([\d,.]+)/i);
-                
-                if (!tickerMatch || !unitsMatch || !priceMatch) {
-                     alert("ไม่สามารถแยกข้อมูล Ticker, Units หรือ Unit Price จาก PDF ได้");
-                     return;
-                }
+        // 2. ใช้ Regex ตรวจจับตารางการซื้อขายของ Dime (รองรับหลายรายการในใบเดียว)
+        // รูปแบบข้อความใน Dime PDF: BUY GOOGL [XNAS] 0.0591073 337.86 USD
+        const regex = /(BUY|SELL)\s+([A-Z]+)\s+\[[A-Z]+\]\s+([\d,.]+)\s+([\d,.]+)/g;
+        let matches = [...fullText.matchAll(regex)];
 
-                const ticker = tickerMatch[1].toUpperCase();
-                const newUnits = parseFloat(unitsMatch[1].replace(/,/g, ''));
-                const newPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+        if (matches.length === 0) {
+            alert("ไม่พบรายการซื้อขายในไฟล์ PDF นี้ กรุณาตรวจสอบว่าเป็นใบ Confirmation Note ของ Dime หรือไม่");
+            return;
+        }
 
-                // 3. ค้นหา fund.code === ticker
-                const fundIndex = funds.findIndex(f => f.code === ticker);
-                
-                if (fundIndex >= 0) {
-                    // 4. คำนวณ avgNav ใหม่ (สมการ DCA)
-                    const oldUnits = parseFloat(funds[fundIndex].units) || 0;
-                    const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;
-                    
-                    const totalOldCost = oldUnits * oldAvgNav;
-                    const totalNewCost = newUnits * newPrice;
-                    
-                    const updatedUnits = oldUnits + newUnits;
-                    const updatedAvgNav = updatedUnits > 0 ? (totalOldCost + totalNewCost) / updatedUnits : 0;
+        let updatedSummary = [];
 
-                    // อัปเดตข้อมูลใน Array
-                    funds[fundIndex].units = updatedUnits;
-                    funds[fundIndex].avgNav = updatedAvgNav;
-                    
-                    alert(`อัปเดต ${ticker} สำเร็จ!\nหน่วยใหม่: ${updatedUnits.toFixed(4)}\nต้นทุนเฉลี่ยใหม่: $${updatedAvgNav.toFixed(4)}`);
-                } else {
-                    // หากไม่พบหุ้นนี้ในพอร์ต ให้เพิ่มรายการใหม่
-                    funds.push({
-                        id: Date.now().toString(),
-                        code: ticker,
-                        units: newUnits,
-                        avgNav: newPrice,
-                        currentNav: newPrice,
-                        todayGain: 0,
-                        targetPct: 0
-                    });
-                    alert(`เพิ่ม ${ticker} เข้าพอร์ตใหม่สำเร็จ!`);
-                }
+        // 3. วนลูปประมวลผลหุ้นทุกตัวที่พบใน PDF
+        for (const match of matches) {
+            const type = match[1];            // BUY หรือ SELL
+            const ticker = match[2];          // เช่น GOOGL, AMZN
+            const newUnits = parseFloat(match[3].replace(/,/g, '')); // จำนวนหุ้น
+            const newPrice = parseFloat(match[4].replace(/,/g, '')); // ราคาต่อหุ้น
 
-                // 5. บันทึกลง Firebase และอัปเดตหน้าจอ
-                saveDataToCloud();
-                renderAll();
-                fetchLivePrices();
+            if (type !== 'BUY') continue; // ประมวลผลเฉพาะฝั่งซื้อ (BUY)
 
-            } catch (err) {
-                console.error("PDF Parsing Error:", err);
-                alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF");
-            } finally {
-                loader.classList.add('hidden');
-                event.target.value = ''; 
+            const fundIndex = funds.findIndex(f => f.code === ticker);
+
+            if (fundIndex >= 0) {
+                // คำนวณราคาเฉลี่ยใหม่ (DCA)
+                const oldUnits = parseFloat(funds[fundIndex].units) || 0;
+                const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;
+
+                const totalOldCost = oldUnits * oldAvgNav;
+                const totalNewCost = newUnits * newPrice;
+
+                const updatedUnits = oldUnits + newUnits;
+                const updatedAvgNav = updatedUnits > 0 ? (totalOldCost + totalNewCost) / updatedUnits : 0;
+
+                funds[fundIndex].units = updatedUnits;
+                funds[fundIndex].avgNav = updatedAvgNav;
+
+                updatedSummary.push(`${ticker}: +${newUnits} หุ้น (รวม ${updatedUnits.toFixed(4)} หุ้น | ทุนเฉลี่ย $${updatedAvgNav.toFixed(2)})`);
+            } else {
+                // เพิ่มหุ้นใหม่เข้าพอร์ต
+                funds.push({
+                    id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+                    code: ticker,
+                    units: newUnits,
+                    avgNav: newPrice,
+                    currentNav: newPrice,
+                    todayGain: 0,
+                    targetPct: 0
+                });
+                updatedSummary.push(`${ticker}: เพิ่มรายการใหม่ +${newUnits} หุ้น @ $${newPrice}`);
             }
         }
+
+        // 4. บันทึกและอัปเดตแสดงผล
+        if (typeof saveDataToCloud === 'function') saveDataToCloud();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof fetchLivePrices === 'function') fetchLivePrices();
+
+        alert("อัปเดตข้อมูลจาก PDF สำเร็จ!\n\n" + updatedSummary.join("\n"));
+
+    } catch (err) {
+        console.error("PDF Parsing Error:", err);
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF");
+    } finally {
+        if (loader) loader.classList.add('hidden');
+        event.target.value = ''; 
+    }
+}
     async function processConfirmationNote(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log("PDF Uploaded");
+    const loader = document.getElementById('aiLoader');
+    if (loader) loader.classList.remove('hidden');
 
     try {
+        // 1. ดึงข้อความทั้งหมดจากไฟล์ PDF
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = "";
@@ -1229,16 +1239,94 @@ document.addEventListener('DOMContentLoaded', async () => {
             fullText += textContent.items.map(item => item.str).join(' ') + ' ';
         }
 
-        console.log(fullText);
+        // 2. ตรวจสอบ Gemini API Key
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (!apiKey) {
+            alert("กรุณากรอกและบันทึก Gemini API Key ในเมนูก่อนใช้งานครับ");
+            return;
+        }
+
+        // 3. ส่งข้อความให้ Gemini AI สกัดข้อมูลหุ้นออกมาเป็น JSON
+        const prompt = `จากข้อความในสลิป/ใบยืนยันการซื้อขายหุ้นต่อไปนี้ ช่วยสกัดข้อมูลรายการซื้อขายหุ้นทั้งหมดให้อยู่ในรูปแบบ JSON Array เท่านั้น:
+[{"code": "ชื่อหุ้น เช่น GOOGL", "units": จำนวนหุ้น(เลขทศนิยม), "price": ราคาต่อหุ้นUSD(เลขทศนิยม)}]
+
+ข้อความในเอกสาร:
+${fullText}`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const data = await response.json();
+        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!resultText) {
+            throw new Error("Gemini AI ไม่สามารถอ่านข้อมูลจากเอกสารนี้ได้");
+        }
+
+        const items = JSON.parse(resultText);
+        let summaryMsg = [];
+
+        // 4. คำนวณ DCA และอัปเดตข้อมูลเข้าพอร์ต
+        items.forEach(item => {
+            const ticker = item.code.toUpperCase();
+            const newUnits = parseFloat(item.units);
+            const newPrice = parseFloat(item.price);
+
+            if (!ticker || isNaN(newUnits) || isNaN(newPrice)) return;
+
+            const fundIndex = funds.findIndex(f => f.code === ticker);
+
+            if (fundIndex >= 0) {
+                // คำนวณราคาเฉลี่ยใหม่ (DCA)
+                const oldUnits = parseFloat(funds[fundIndex].units) || 0;
+                const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;
+
+                const totalOldCost = oldUnits * oldAvgNav;
+                const totalNewCost = newUnits * newPrice;
+
+                const updatedUnits = oldUnits + newUnits;
+                const updatedAvgNav = updatedUnits > 0 ? (totalOldCost + totalNewCost) / updatedUnits : 0;
+
+                funds[fundIndex].units = updatedUnits;
+                funds[fundIndex].avgNav = updatedAvgNav;
+
+                summaryMsg.push(`${ticker}: +${newUnits} หุ้น (รวม ${updatedUnits.toFixed(4)} หุ้น | ทุนเฉลี่ย $${updatedAvgNav.toFixed(2)})`);
+            } else {
+                // เพิ่มหุ้นใหม่เข้าพอร์ต
+                funds.push({
+                    id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+                    code: ticker,
+                    units: newUnits,
+                    avgNav: newPrice,
+                    currentNav: newPrice,
+                    todayGain: 0,
+                    targetPct: 0
+                });
+                summaryMsg.push(`${ticker}: เพิ่มรายการใหม่ +${newUnits} หุ้น @ $${newPrice}`);
+            }
+        });
+
+        // 5. บันทึกลง Cloud และรีเฟรชหน้าจอ
+        if (typeof saveDataToCloud === 'function') saveDataToCloud();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof fetchLivePrices === 'function') fetchLivePrices();
+
+        alert("สแกนสลิปด้วย AI และอัปเดตพอร์ตสำเร็จ!\n\n" + summaryMsg.join("\n"));
 
     } catch (err) {
         console.error("PDF Parsing Error:", err);
-        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF");
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF หรือประมวลผล AI");
     } finally {
+        if (loader) loader.classList.add('hidden');
         event.target.value = ''; 
     }
 }
-    
     </script>
 </body>
 </html>
