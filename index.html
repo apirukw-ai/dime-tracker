@@ -1341,21 +1341,6 @@ ${fullText}`;
     }
 }
 
-        // 5. บันทึกลง Cloud และรีเฟรชหน้าจอ
-        if (typeof saveDataToCloud === 'function') saveDataToCloud();
-        if (typeof renderAll === 'function') renderAll();
-        if (typeof fetchLivePrices === 'function') fetchLivePrices();
-
-        alert("สแกนสลิปด้วย AI และอัปเดตพอร์ตสำเร็จ!\n\n" + summaryMsg.join("\n"));
-
-    } catch (err) {
-        console.error("PDF Parsing Error:", err);
-        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF หรือประมวลผล AI");
-    } finally {
-        if (loader) loader.classList.add('hidden');
-        event.target.value = ''; 
-    }
-}
     </script>
 </body>
 </html>
