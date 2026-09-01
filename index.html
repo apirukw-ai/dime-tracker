@@ -1218,7 +1218,7 @@ async function processDimePdf(event) {
         event.target.value = ''; 
     }
 }
-    async function processConfirmationNote(event) {
+async function processConfirmationNote(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -1226,7 +1226,7 @@ async function processDimePdf(event) {
     if (loader) loader.classList.remove('hidden');
 
     try {
-        // 1. ดึงข้อความทั้งหมดจากไฟล์ PDF
+        // 1. อ่านข้อความทั้งหมดจากไฟล์ PDF
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = "";
@@ -1237,6 +1237,11 @@ async function processDimePdf(event) {
             fullText += textContent.items.map(item => item.str).join(' ') + ' ';
         }
 
+        // ตรวจสอบว่า PDF มีตัวอักษรให้ดึงหรือไม่
+        if (!fullText.trim()) {
+            throw new Error("ไม่สามารถอ่านข้อความจากไฟล์ PDF นี้ได้ (เอกสารอาจเป็นไฟล์สแกนรูปภาพ ให้ใช้ปุ่มสแกนภาพ AI แทน)");
+        }
+
         // 2. ตรวจสอบ Gemini API Key
         const apiKey = localStorage.getItem('gemini_api_key');
         if (!apiKey) {
@@ -1244,7 +1249,7 @@ async function processDimePdf(event) {
             return;
         }
 
-        // 3. ส่งข้อความให้ Gemini AI สกัดข้อมูลหุ้นออกมาเป็น JSON
+        // 3. ส่งข้อความให้ Gemini AI ประมวลผล
         const prompt = `จากข้อความในสลิป/ใบยืนยันการซื้อขายหุ้นต่อไปนี้ ช่วยสกัดข้อมูลรายการซื้อขายหุ้นทั้งหมดให้อยู่ในรูปแบบ JSON Array เท่านั้น:
 [{"code": "ชื่อหุ้น เช่น GOOGL", "units": จำนวนหุ้น(เลขทศนิยม), "price": ราคาต่อหุ้นUSD(เลขทศนิยม)}]
 
@@ -1260,19 +1265,27 @@ ${fullText}`;
             })
         });
 
-        const data = await response.json();
-        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!resultText) {
-            throw new Error("Gemini AI ไม่สามารถอ่านข้อมูลจากเอกสารนี้ได้");
+        // ดักจับ Error ตรงจาก Google API (เช่น 400 Invalid Key, 429 Quota Exceeded)
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(`Gemini API Error (${response.status}): ${errData.error?.message || response.statusText}`);
         }
 
+        const data = await response.json();
+        let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!resultText) {
+            throw new Error("Gemini AI ไม่สามารถสกัดข้อมูลรายการซื้อขายได้");
+        }
+
+        // ลบ Markdown formatting หาก AI ตอบกลับติดครอบแบบ ```json
+        resultText = resultText.replace(/```json|```/g, '').trim();
         const items = JSON.parse(resultText);
         let summaryMsg = [];
 
         // 4. คำนวณ DCA และอัปเดตข้อมูลเข้าพอร์ต
         items.forEach(item => {
-            const ticker = item.code.toUpperCase();
+            const ticker = item.code ? item.code.toUpperCase() : null;
             const newUnits = parseFloat(item.units);
             const newPrice = parseFloat(item.price);
 
@@ -1281,7 +1294,6 @@ ${fullText}`;
             const fundIndex = funds.findIndex(f => f.code === ticker);
 
             if (fundIndex >= 0) {
-                // คำนวณราคาเฉลี่ยใหม่ (DCA)
                 const oldUnits = parseFloat(funds[fundIndex].units) || 0;
                 const oldAvgNav = parseFloat(funds[fundIndex].avgNav) || 0;
 
@@ -1296,7 +1308,6 @@ ${fullText}`;
 
                 summaryMsg.push(`${ticker}: +${newUnits} หุ้น (รวม ${updatedUnits.toFixed(4)} หุ้น | ทุนเฉลี่ย $${updatedAvgNav.toFixed(2)})`);
             } else {
-                // เพิ่มหุ้นใหม่เข้าพอร์ต
                 funds.push({
                     id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
                     code: ticker,
@@ -1309,6 +1320,26 @@ ${fullText}`;
                 summaryMsg.push(`${ticker}: เพิ่มรายการใหม่ +${newUnits} หุ้น @ $${newPrice}`);
             }
         });
+
+        if (summaryMsg.length === 0) {
+            alert("ไม่พบข้อมูลรายการซื้อขายที่สมบูรณ์ในเอกสารนี้");
+            return;
+        }
+
+        if (typeof saveDataToCloud === 'function') saveDataToCloud();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof fetchLivePrices === 'function') fetchLivePrices();
+
+        alert("อัปเดตข้อมูลด้วย Gemini AI สำเร็จ!\n\n" + summaryMsg.join("\n"));
+
+    } catch (err) {
+        console.error("Confirmation Note Processing Error:", err);
+        alert("เกิดข้อผิดพลาด: " + err.message);
+    } finally {
+        if (loader) loader.classList.add('hidden');
+        event.target.value = ''; 
+    }
+}
 
         // 5. บันทึกลง Cloud และรีเฟรชหน้าจอ
         if (typeof saveDataToCloud === 'function') saveDataToCloud();
