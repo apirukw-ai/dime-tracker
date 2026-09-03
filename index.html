@@ -11,6 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DIME Tracker">
     <link rel="apple-touch-icon" href="https://dime.co.th/favicon.ico">
+    <!-- ไอคอน Favicon สำหรับแท็บเบราว์เซอร์ -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     
     <!-- Tailwind CSS & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1352,7 +1354,16 @@ ${fullText}`;
         event.target.value = ''; 
     }
 }
+loadDashboard();
 
+// ลงทะเบียน Service Worker แบบ Network First (ดึงข้อมูลสดเสมอ แต่กดติดตั้ง PWA ได้)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('PWA Service Worker ready:', reg.scope))
+      .catch(err => console.error('PWA registration failed:', err));
+  });
+}
     </script>
 </body>
 </html>
