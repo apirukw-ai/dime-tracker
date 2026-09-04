@@ -2,10 +2,9 @@ import os
 import requests
 import json
 
-firebase_url = (
-    os.environ["FIREBASE_DB_URL"]
-    + "/dime_ports/my-real-dime-port.json"
-)
+base_url = os.environ["FIREBASE_DB_URL"]
+firebase_url = base_url + "/dime_ports/my-real-dime-port.json"
+summary_url = base_url + "/dime_summary/current.json"
 
 FINNHUB_API_KEY = os.environ["FINNHUB_API_KEY"]
 
@@ -16,15 +15,19 @@ response = requests.get(firebase_url)
 response.raise_for_status()
 
 print("STATUS =", response.status_code)
-print("TEXT =", response.text[:500])
-
 funds = response.json()
 
 print("Funds loaded:")
 
-for fund in funds:
+total_value = 0.0
+total_cost = 0.0
+total_profit = 0.0
+total_daily_profit = 0.0
 
+for fund in funds:
     code = fund["code"]
+    units = float(fund.get("units", 0))
+    avg_nav = float(fund.get("avgNav", 0))
 
     print("Checking", code)
 
@@ -35,24 +38,62 @@ for fund in funds:
     print(code, quote)
 
     if quote.get("c"):
-        fund["currentNav"] = quote["c"]
+        current_nav = float(quote["c"])
+        # 'pc' คือ Previous Close Price (ราคาปิดวันก่อนหน้าจาก Finnhub)
+        prev_close = float(quote.get("pc", current_nav))
 
-        print(
-            "Updated:",
-            code,
-            quote["c"]
-        )
+        fund["currentNav"] = current_nav
+        
+        # คำนวณกำไรวันนี้ของหุ้นตัวนี้ (USD)
+        today_gain = (current_nav - prev_close) * units
+        fund["todayGain"] = round(today_gain, 2)
 
-# จบ for แล้วค่อย Save ทีเดียว
+        print(f"Updated: {code} | Current: {current_nav} | PrevClose: {prev_close} | TodayGain: {fund['todayGain']}")
 
-print("Saving Firebase...")
+    # คำนวณยอดรวมทั้งพอร์ต DIME
+    cur_nav = float(fund.get("currentNav", avg_nav))
+    cost_val = units * avg_nav
+    val_val = units * cur_nav
+    
+    total_cost += cost_val
+    total_value += val_val
+    
+    # รวมกำไรวันนี้ของหุ้นทุกตัว
+    if quote.get("c"):
+        total_daily_profit += (cur_nav - float(quote.get("pc", cur_nav))) * units
 
-response = requests.put(
+total_profit = total_value - total_cost
+total_profit_pct = (total_profit / total_cost * 100) if total_cost > 0 else 0.0
+
+# คำนวณ % กำไรรายวันเทียบกับมูลค่าพอร์ตรวมก่อนหน้า
+prev_total_value = total_value - total_daily_profit
+daily_profit_pct = (total_daily_profit / prev_total_value * 100) if prev_total_value > 0 else 0.0
+
+# 1. บันทึกข้อมูลรายการหุ้นรายตัวขึ้น Firebase
+print("Saving Firebase (Ports)...")
+requests.put(
     firebase_url,
     headers={"Content-Type": "application/json"},
     data=json.dumps(funds)
 )
 
-print("SAVE STATUS =", response.status_code)
+# 2. บันทึกข้อมูลสรุปภาพรวมพอร์ต DIME (dime_summary/current)
+print("Saving Firebase (Summary)...")
+summary_payload = {
+    "value": round(total_value, 2),
+    "cost": round(total_cost, 2),
+    "profit": round(total_profit, 2),
+    "profitPct": round(total_profit_pct, 4),
+    "dailyProfit": round(total_daily_profit, 2),       # 👈 Key กำไรวันนี้ (USD)
+    "dailyProfitPct": round(daily_profit_pct, 4),     # 👈 Key % กำไรวันนี้
+    "updatedAt": requests.get("https://worldtimeapi.org/api/timezone/Asia/Bangkok").json().get("datetime", "")
+}
 
-print("✅ Prices Updated")
+requests.put(
+    summary_url,
+    headers={"Content-Type": "application/json"},
+    data=json.dumps(summary_payload)
+)
+
+print("SAVE STATUS = Success")
+print("✅ DIME Prices & Daily Summary Updated Successfully!")
