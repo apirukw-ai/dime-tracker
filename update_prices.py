@@ -70,6 +70,7 @@ summary_payload = {
     "dailyProfit": round(total_daily_profit_usd, 2),     # 👈 บันทึก Key กำไรวันนี้ (USD)
     "dailyProfitPct": round(daily_profit_pct, 4),       # 👈 บันทึก % กำไรวันนี้
     "updatedAt": datetime.now().isoformat()
+    "secret": "my_secret_token_12345"  # 👈 รหัสลับต้องตรงกับใน Firebase Rules
 }
 
 response = requests.put(summary_url, json=summary_payload)
