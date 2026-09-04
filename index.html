@@ -790,8 +790,11 @@ tfoot.innerHTML = `
 
         async function saveDataToCloud() {
     const LOCAL_CACHE_KEY = `dime_cache_${currentSyncId}`;
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(funds));
+    console.log('💾 Saved to Local Cache successfully');
+}
 
-        function openApiKeyModal() {
+function openApiKeyModal() {
     document.getElementById('inputGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
     document.getElementById('inputFinnhubKey').value = localStorage.getItem('finnhub_api_key') || '';
     const modal = document.getElementById('apiKeyModal');
