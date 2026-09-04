@@ -60,20 +60,11 @@ daily_profit_pct = (total_daily_profit_usd / prev_total_value * 100) if prev_tot
 print("Saving Ports to Firebase...")
 requests.put(firebase_url, json=funds)
 
-# 2. บันทึก Summary เข้า /dime_summary/current.json
+# 2. บันทึก Summary สรุปภาพรวมเข้า /dime_summary/current.json (ระบุ URL ตรงๆ ชัดเจน)
 print("Saving Summary to Firebase...")
-summary_payload = {
-    "value": round(total_value_usd, 2),
-    "cost": round(total_cost_usd, 2),
-    "profit": round(total_profit_usd, 2),
-    "profitPct": round(total_profit_pct, 4),
-    "dailyProfit": round(total_daily_profit_usd, 2),     # 👈 บันทึก Key กำไรวันนี้ (USD)
-    "dailyProfitPct": round(daily_profit_pct, 4),       # 👈 บันทึก % กำไรวันนี้
-    "updatedAt": datetime.now().isoformat(),
-    "secret": "my_secret_token_12345"  # 👈 รหัสลับต้องตรงกับใน Firebase Rules
-}
+direct_summary_url = "https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json"
 
-response = requests.put(summary_url, json=summary_payload)
-response.raise_for_status() # 📍 เพิ่มบรรทัดนี้เพื่อให้แจ้งเตือนทันทีถ้าพัง 401
+response = requests.put(direct_summary_url, json=summary_payload)
 print("SUMMARY SAVE STATUS =", response.status_code)
+response.raise_for_status() 
 print("✅ DIME Summary Updated Successfully!")
