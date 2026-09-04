@@ -9,28 +9,21 @@ summary_url = base_url + "/dime_summary/current.json"
 
 FINNHUB_API_KEY = os.environ["FINNHUB_API_KEY"]
 
-print("Loading Firebase...")
-print("URL =", firebase_url)
-
+print("Loading Firebase Ports...")
 response = requests.get(firebase_url)
 response.raise_for_status()
 
-print("STATUS =", response.status_code)
 funds = response.json()
+print("Funds loaded:", len(funds))
 
-print("Funds loaded:")
-
-total_value = 0.0
-total_cost = 0.0
-total_profit = 0.0
-total_daily_profit = 0.0
+total_value_usd = 0.0
+total_cost_usd = 0.0
+total_daily_profit_usd = 0.0
 
 for fund in funds:
     code = fund["code"]
     units = float(fund.get("units", 0))
     avg_nav = float(fund.get("avgNav", 0))
-
-    print("Checking", code)
 
     try:
         quote = requests.get(
@@ -46,52 +39,39 @@ for fund in funds:
         prev_close = float(quote.get("pc", current_nav))
 
         fund["currentNav"] = current_nav
+        
+        # คำนวณกำไรวันนี้ของหุ้นตัวนี้ (USD)
         today_gain = (current_nav - prev_close) * units
         fund["todayGain"] = round(today_gain, 2)
+        total_daily_profit_usd += today_gain
+    else:
+        current_nav = float(fund.get("currentNav", avg_nav))
 
-        print(f"Updated: {code} | Current: {current_nav} | PrevClose: {prev_close} | TodayGain: {fund['todayGain']}")
+    total_cost_usd += units * avg_nav
+    total_value_usd += units * current_nav
 
-    cur_nav = float(fund.get("currentNav", avg_nav))
-    cost_val = units * avg_nav
-    val_val = units * cur_nav
-    
-    total_cost += cost_val
-    total_value += val_val
-    
-    if quote.get("c"):
-        total_daily_profit += (cur_nav - float(quote.get("pc", cur_nav))) * units
+total_profit_usd = total_value_usd - total_cost_usd
+total_profit_pct = (total_profit_usd / total_cost_usd * 100) if total_cost_usd > 0 else 0.0
 
-total_profit = total_value - total_cost
-total_profit_pct = (total_profit / total_cost * 100) if total_cost > 0 else 0.0
+prev_total_value = total_value_usd - total_daily_profit_usd
+daily_profit_pct = (total_daily_profit_usd / prev_total_value * 100) if prev_total_value > 0 else 0.0
 
-prev_total_value = total_value - total_daily_profit
-daily_profit_pct = (total_daily_profit / prev_total_value * 100) if prev_total_value > 0 else 0.0
+# 1. บันทึกข้อมูลหุ้นรายตัว
+print("Saving Ports to Firebase...")
+requests.put(firebase_url, json=funds)
 
-# 1. บันทึกข้อมูลรายการหุ้นรายตัวขึ้น Firebase
-print("Saving Firebase (Ports)...")
-requests.put(
-    firebase_url,
-    headers={"Content-Type": "application/json"},
-    data=json.dumps(funds)
-)
-
-# 2. บันทึกข้อมูลสรุปภาพรวมพอร์ต DIME
-print("Saving Firebase (Summary)...")
+# 2. บันทึก Summary เข้า /dime_summary/current.json
+print("Saving Summary to Firebase...")
 summary_payload = {
-    "value": round(total_value, 2),
-    "cost": round(total_cost, 2),
-    "profit": round(total_profit, 2),
+    "value": round(total_value_usd, 2),
+    "cost": round(total_cost_usd, 2),
+    "profit": round(total_profit_usd, 2),
     "profitPct": round(total_profit_pct, 4),
-    "dailyProfit": round(total_daily_profit, 2),
-    "dailyProfitPct": round(daily_profit_pct, 4),
-    "updatedAt": datetime.now().isoformat()  # 📍 ใช้ datetime ใน Python ตรงๆ แทนการยิง API
+    "dailyProfit": round(total_daily_profit_usd, 2),     # 👈 บันทึก Key กำไรวันนี้ (USD)
+    "dailyProfitPct": round(daily_profit_pct, 4),       # 👈 บันทึก % กำไรวันนี้
+    "updatedAt": datetime.now().isoformat()
 }
 
-requests.put(
-    summary_url,
-    headers={"Content-Type": "application/json"},
-    data=json.dumps(summary_payload)
-)
-
-print("SAVE STATUS = Success")
-print("✅ DIME Prices & Daily Summary Updated Successfully!")
+response = requests.put(summary_url, json=summary_payload)
+print("SUMMARY SAVE STATUS =", response.status_code)
+print("✅ DIME Summary Updated Successfully!")
