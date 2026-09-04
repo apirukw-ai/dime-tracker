@@ -73,12 +73,6 @@ summary_payload = {
 }
 
 response = requests.put(summary_url, json=summary_payload)
-print("SUMMARY SAVE STATUS =", response.status_code)
-print("✅ DIME Summary Updated Successfully!")
-
-# 2. บันทึก Summary สรุปภาพรวมเข้า /dime_summary/current.json
-print("Saving Summary to Firebase...")
-response = requests.put(summary_url, json=summary_payload)
 response.raise_for_status() # 📍 เพิ่มบรรทัดนี้เพื่อให้แจ้งเตือนทันทีถ้าพัง 401
 print("SUMMARY SAVE STATUS =", response.status_code)
 print("✅ DIME Summary Updated Successfully!")
