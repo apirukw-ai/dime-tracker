@@ -76,7 +76,12 @@ summary_payload = {
     "updatedAtStr": now_th_str
 }
 
-direct_summary_url = "https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json"
+# ดึง Secret จาก Environment (ถ้ายังไม่มีในไฟล์นี้)
+FIREBASE_SECRET = os.environ.get('FIREBASE_SECRET')
+
+# ต่อท้าย ?auth=... เข้าไปใน URL
+direct_summary_url = f"https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json?auth={FIREBASE_SECRET}"
+
 response = requests.put(direct_summary_url, json=summary_payload)
 print("SUMMARY SAVE STATUS =", response.status_code)
 response.raise_for_status()
