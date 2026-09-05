@@ -331,13 +331,31 @@
 
     <script>
         let currentSyncId = localStorage.getItem('dime_sync_id') || 'my-real-dime-port';
-        document.getElementById('syncIdInput').value = currentSyncId;
+if (document.getElementById('syncIdInput')) {
+    document.getElementById('syncIdInput').value = currentSyncId;
+}
 
-        function getDbUrl() {
-            return `https://my-dime-port-default-rtdb.asia-southeast1.firebasedatabase.app/dime_ports/${currentSyncId}.json`;
+// 1. ชี้ไปที่ Firebase ตัวหลัก (SCB)
+function getDbUrl() {
+    return `https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_ports/${currentSyncId}.json`;
+}
+
+// 2. ตัวแปรเก็บเรทค่าเงิน (ตั้งค่าเริ่มต้นไว้เผื่อ API ล่ม)
+let USD_THB_RATE = 34.0; 
+
+// 3. ฟังก์ชันดึงเรทค่าเงินสด (Real-time)
+async function fetchExchangeRate() {
+    try {
+        const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await res.json();
+        if (data && data.rates && data.rates.THB) {
+            USD_THB_RATE = data.rates.THB;
+            console.log("✅ ดึงเรทค่าเงินสำเร็จ: 1 USD = " + USD_THB_RATE + " THB");
         }
-
-        let USD_THB_RATE = 35.25;
+    } catch (error) {
+        console.error("⚠️ ดึงเรทไม่สำเร็จ ใช้ค่าสำรอง (" + USD_THB_RATE + "):", error);
+    }
+}
 
         // ตัวแปรสำหรับจำคอลัมน์และทิศทางการเรียงลำดับ
         let currentSortCol = null;
@@ -377,6 +395,9 @@
         }
 
 async function loadData() {
+    // 1. เรียกใช้ฟังก์ชันดึงเรทค่าเงินของคุณ
+    await fetchUsdThbRate();    
+    
     // กำหนด Key สำหรับ Emergency Cache ของ Sync ID ปัจจุบัน
     const LOCAL_CACHE_KEY = `dime_cache_${currentSyncId}`;
 
@@ -675,7 +696,10 @@ if (thead) {
 
             const totalProfit = totalVal - totalCost;
             const totalProfitPct = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-            const dailyProfitPct = totalVal > 0 ? (totalDailyGain / totalVal) * 100 : 0;
+
+            // คำนวณมูลค่าพอร์ตรวมก่อนเริ่มวันเพื่อใช้เป็นฐานตัวหาร
+            const prevTotalVal = totalVal - totalDailyGain;
+            const dailyProfitPct = prevTotalVal > 0 ? (totalDailyGain / prevTotalVal) * 100 : 0;
 
             // ----------------------------------------------------
             // เพิ่มแถบสรุป "รวมทั้งหมด" (tfoot)
