@@ -56,9 +56,12 @@ total_profit_pct = (total_profit_usd / total_cost_usd * 100) if total_cost_usd >
 prev_total_value = total_value_usd - total_daily_profit_usd
 daily_profit_pct = (total_daily_profit_usd / prev_total_value * 100) if prev_total_value > 0 else 0.0
 
-# 1. บันทึกข้อมูลหุ้นรายตัว
-print("Saving Ports to Firebase...")
-requests.put(firebase_url, json=funds)
+# 📍 กำหนดเวลาประเทศไทย (UTC+7)
+from datetime import timezone, timedelta
+tz_th = timezone(timedelta(hours=7))
+now_th = datetime.now(tz_th)
+now_th_iso = now_th.isoformat()
+now_th_str = now_th.strftime('%d/%m/%Y %H:%M:%S')
 
 # 2. บันทึก Summary สรุปภาพรวมเข้า /dime_summary/current.json
 print("Saving Summary to Firebase...")
@@ -69,7 +72,8 @@ summary_payload = {
     "profitPct": round(total_profit_pct, 4),
     "dailyProfit": round(total_daily_profit_usd, 2),
     "dailyProfitPct": round(daily_profit_pct, 4),
-    "updatedAt": datetime.now().isoformat()
+    "updatedAt": now_th_iso,
+    "updatedAtStr": now_th_str
 }
 
 direct_summary_url = "https://scb-e-class-default-rtdb.asia-southeast1.firebasedatabase.app/dime_summary/current.json"
