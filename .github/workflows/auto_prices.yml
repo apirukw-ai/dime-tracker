@@ -29,3 +29,4 @@ jobs:
         env:
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }} # 👈 เพิ่มบรรทัดนี้
