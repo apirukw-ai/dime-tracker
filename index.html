@@ -921,118 +921,81 @@ function saveApiKey() {
             document.getElementById('slipFileInput').click();
         }
 
-async function processSlipImage(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+        async function processSlipImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    const apiKey = localStorage.getItem('dime_gemini_key');
-    const loader = document.getElementById('aiLoader');
-    loader.classList.remove('hidden');
+            const apiKey = localStorage.getItem('dime_gemini_key');
+            const loader = document.getElementById('aiLoader');
+            loader.classList.remove('hidden');
 
-    try {
-        const base64Data = await toBase64(file);
-        const cleanBase64 = base64Data.split(',')[1];
+            try {
+                const base64Data = await toBase64(file);
+                const cleanBase64 = base64Data.split(',')[1];
 
-        const promptText = "Extract investment port details from this image. Return ONLY a valid JSON array of objects with keys: code (string ticker), units (number), avgNav (number), currentNav (number), targetPct (number). No markdown, no explanation.";
+                const promptText = "Extract investment port details from this image. Return ONLY a valid JSON array of objects with keys: code (string ticker), units (number), avgNav (number), currentNav (number), targetPct (number). No markdown, no explanation.";
 
-        // กำหนดโมเดลหลักและโมเดลสำรอง
-        const PRIMARY_MODEL = "gemini-2.5-flash";
-        const FALLBACK_MODEL = "gemini-1.5-flash";
-        
-        let response;
-        let result;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+ method: 'POST',
+    headers: { 
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey 
+    },
+    body: JSON.stringify({
+        // (คงโค้ดส่วน body ไว้เหมือนเดิม)
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: file.type, data: cleanBase64 } }
+                            ]
+                        }]
+                    })
+                });
 
-        console.log("🤖 กำลังประมวลผลด้วยโมเดลหลัก: " + PRIMARY_MODEL);
+ const result = await response.json();
 
-        try {
-            // ครั้งที่ 1: ลองยิงด้วยโมเดลหลัก (เปลี่ยนมาใช้การต่อสตริงด้วยเครื่องหมาย + เพื่อป้องกัน Error)
-            response = await fetch("https://googleapis.com" + PRIMARY_MODEL + ":generateContent?key=" + apiKey, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey 
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: promptText },
-                            { inline_data: { mime_type: file.type, data: cleanBase64 } }
-                        ]
-                    }]
-                })
-            });
-
-            result = await response.json();
-
-            if (!response.ok || result.error) {
-                const errMsg = result.error?.message || "HTTP " + response.status;
-                throw new Error(errMsg);
-            }
-
-        } catch (primaryError) {
-            console.warn("⚠️ โมเดลหลัก (" + PRIMARY_MODEL + ") ขัดข้อง: ", primaryError.message);
-            console.log("🔄 กำลังสลับไปใช้โมเดลสำรอง: " + FALLBACK_MODEL + "...");
-
-            // ครั้งที่ 2: ลองยิงใหม่ด้วยโมเดลสำรอง
-            response = await fetch("https://googleapis.com" + FALLBACK_MODEL + ":generateContent?key=" + apiKey, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey 
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: promptText },
-                            { inline_data: { mime_type: file.type, data: cleanBase64 } }
-                        ]
-                    }]
-                })
-            });
-
-            result = await response.json();
-
-            if (!response.ok || result.error) {
-                alert('ข้อผิดพลาดจาก API (โมเดลสำรอง): ' + (result.error?.message || "HTTP " + response.status));
-                throw new Error(result.error?.message || 'Fallback model failed');
-            }
-        }
-
-        const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!textResponse) {
-            alert('เกิดข้อผิดพลาด: AI ไม่ได้ส่งข้อมูลกลับมา กรุณาตรวจสอบ API Key');
-            throw new Error('No valid text response from AI');
-        }
-
-        const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsedData = JSON.parse(cleanJsonStr);
-
-        if (Array.isArray(parsedData) && parsedData.length > 0) {
-            funds = parsedData.map((item, index) => ({
-                id: Date.now().toString() + index,
-                code: item.code || 'UNKNOWN',
-                units: parseFloat(item.units) || 0,
-                avgNav: parseFloat(item.avgNav) || 0,
-                currentNav: parseFloat(item.currentNav) || parseFloat(item.avgNav) || 0,
-                todayGain: 0,
-                targetPct: parseFloat(item.targetPct) || 0
-            }));
-            renderAll();
-            saveDataToCloud(); 
-            alert('สแกนภาพและอัปเดตพอร์ตสำเร็จ!');
-            fetchLivePrices();
-        } else {
-            alert('ไม่พบข้อมูลพอร์ตในรูปภาพ');
-        }
-    } catch (err) {
-        console.error(err);
-        alert('เกิดข้อผิดพลาดในการประมวลผลภาพ');
-    } finally {
-        loader.classList.add('hidden');
-        event.target.value = '';
-    }
+// 1. เช็คว่า API ส่ง Error กลับมาหรือไม่
+if (result.error) {
+    alert('ข้อผิดพลาดจาก API: ' + result.error.message);
+    throw new Error(result.error.message);
 }
+
+const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+// 2. เช็คว่ามีข้อมูลตอบกลับมาจริงๆ ก่อนนำไปใช้ .replace()
+if (!textResponse) {
+    alert('เกิดข้อผิดพลาด: AI ไม่ได้ส่งข้อมูลกลับมา กรุณาตรวจสอบ API Key');
+    throw new Error('No valid text response from AI');
+}
+
+const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsedData = JSON.parse(cleanJsonStr);
+
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    funds = parsedData.map((item, index) => ({
+                        id: Date.now().toString() + index,
+                        code: item.code || 'UNKNOWN',
+                        units: parseFloat(item.units) || 0,
+                        avgNav: parseFloat(item.avgNav) || 0,
+                        currentNav: parseFloat(item.currentNav) || parseFloat(item.avgNav) || 0,
+                        todayGain: 0,
+                        targetPct: parseFloat(item.targetPct) || 0
+                    }));
+                    renderAll();
+                    saveDataToCloud(); // <--- เพิ่มบรรทัดนี้
+                    alert('สแกนภาพและอัปเดตพอร์ตสำเร็จ!');
+                    fetchLivePrices();
+                } else {
+                    alert('ไม่พบข้อมูลพอร์ตในรูปภาพ');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการประมวลผลภาพ');
+            } finally {
+                loader.classList.add('hidden');
+                event.target.value = '';
+            }
+        }
 
         function toBase64(file) {
             return new Promise((resolve, reject) => {
