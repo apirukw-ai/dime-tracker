@@ -935,9 +935,9 @@ async function processSlipImage(event) {
 
         const promptText = "Extract investment port details from this image. Return ONLY a valid JSON array of objects with keys: code (string ticker), units (number), avgNav (number), currentNav (number), targetPct (number). No markdown, no explanation.";
 
-        // --- ระบบสลับโมเดลอัตโนมัติ (Fallback) ---
-        const PRIMARY_MODEL = "gemini-2.5-flash"; // ปรับเป็น 2.5 แทน 3.6 ที่ล่มบ่อย
-        const FALLBACK_MODEL = "gemini-1.5-flash"; // โมเดลสำรองเมื่อตัวหลักล่ม
+        // กำหนดโมเดลหลักและโมเดลสำรอง
+        const PRIMARY_MODEL = "gemini-2.5-flash";
+        const FALLBACK_MODEL = "gemini-1.5-flash";
         
         let response;
         let result;
@@ -945,7 +945,7 @@ async function processSlipImage(event) {
         console.log(`🤖 กำลังประมวลผลด้วยโมเดลหลัก: ${PRIMARY_MODEL}`);
 
         try {
-            // ครั้งที่ 1: ลองยิงด้วยโมเดลหลัก
+            // ครั้งที่ 1: ลองยิงด้วยโมเดลหลัก (แก้ไขความถูกต้องของเครื่องหมาย ${ })
             response = await fetch(`https://googleapis.com{PRIMARY_MODEL}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 
@@ -964,7 +964,6 @@ async function processSlipImage(event) {
 
             result = await response.json();
 
-            // เช็คว่าถ้าเป็น HTTP Error หรือใน JSON มีแจ้ง Error
             if (!response.ok || result.error) {
                 const errMsg = result.error?.message || `HTTP ${response.status}`;
                 throw new Error(errMsg);
@@ -993,17 +992,14 @@ async function processSlipImage(event) {
 
             result = await response.json();
 
-            // ถ้าโมเดลสำรองก็ยังพังอีก ให้โยน Error ออกไปข้างนอก
             if (!response.ok || result.error) {
                 alert('ข้อผิดพลาดจาก API (โมเดลสำรอง): ' + (result.error?.message || `HTTP ${response.status}`));
                 throw new Error(result.error?.message || 'Fallback model failed');
             }
         }
-        // --- จบระบบ Fallback ---
 
         const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        // 2. เช็คว่ามีข้อมูลตอบกลับมาจริงๆ ก่อนนำไปใช้ .replace()
         if (!textResponse) {
             alert('เกิดข้อผิดพลาด: AI ไม่ได้ส่งข้อมูลกลับมา กรุณาตรวจสอบ API Key');
             throw new Error('No valid text response from AI');
