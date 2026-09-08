@@ -942,11 +942,11 @@ async function processSlipImage(event) {
         let response;
         let result;
 
-        console.log(`🤖 กำลังประมวลผลด้วยโมเดลหลัก: ${PRIMARY_MODEL}`);
+        console.log("🤖 กำลังประมวลผลด้วยโมเดลหลัก: " + PRIMARY_MODEL);
 
         try {
-            // ครั้งที่ 1: ลองยิงด้วยโมเดลหลัก (แก้ไขความถูกต้องของเครื่องหมาย ${ })
-            response = await fetch(`https://googleapis.com{PRIMARY_MODEL}:generateContent?key=${apiKey}`, {
+            // ครั้งที่ 1: ลองยิงด้วยโมเดลหลัก (เปลี่ยนมาใช้การต่อสตริงด้วยเครื่องหมาย + เพื่อป้องกัน Error)
+            response = await fetch("https://googleapis.com" + PRIMARY_MODEL + ":generateContent?key=" + apiKey, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -965,16 +965,16 @@ async function processSlipImage(event) {
             result = await response.json();
 
             if (!response.ok || result.error) {
-                const errMsg = result.error?.message || `HTTP ${response.status}`;
+                const errMsg = result.error?.message || "HTTP " + response.status;
                 throw new Error(errMsg);
             }
 
         } catch (primaryError) {
-            console.warn(`⚠️ โมเดลหลัก (${PRIMARY_MODEL}) ขัดข้อง:`, primaryError.message);
-            console.log(`🔄 กำลังสลับไปใช้โมเดลสำรอง: ${FALLBACK_MODEL}...`);
+            console.warn("⚠️ โมเดลหลัก (" + PRIMARY_MODEL + ") ขัดข้อง: ", primaryError.message);
+            console.log("🔄 กำลังสลับไปใช้โมเดลสำรอง: " + FALLBACK_MODEL + "...");
 
             // ครั้งที่ 2: ลองยิงใหม่ด้วยโมเดลสำรอง
-            response = await fetch(`https://googleapis.com{FALLBACK_MODEL}:generateContent?key=${apiKey}`, {
+            response = await fetch("https://googleapis.com" + FALLBACK_MODEL + ":generateContent?key=" + apiKey, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -993,7 +993,7 @@ async function processSlipImage(event) {
             result = await response.json();
 
             if (!response.ok || result.error) {
-                alert('ข้อผิดพลาดจาก API (โมเดลสำรอง): ' + (result.error?.message || `HTTP ${response.status}`));
+                alert('ข้อผิดพลาดจาก API (โมเดลสำรอง): ' + (result.error?.message || "HTTP " + response.status));
                 throw new Error(result.error?.message || 'Fallback model failed');
             }
         }
